@@ -536,8 +536,9 @@ button{cursor:pointer;border:none;font-family:inherit;transition:all .15s}
     <!-- 导入历史备份 -->
     <div id="mpanel-history" class="modal-panel" style="display:none">
       <div class="modal-info">
-        支持两种格式：<b>JSON</b>（之前「导出 JSON」的备份）或 <b>Excel</b>（之前「导出 Excel」的文件）。
-        可仅恢复成员名单（适合新月份），或完整恢复全部数据（含入职记录）
+        支持三种格式：<b>① 入职数据 Excel</b>（含招聘主管/组长/专员列，自动识别层级与业绩）｜
+        <b>② JSON 备份</b>（之前「导出 JSON」的文件）｜
+        <b>③ 计算器导出的 Excel</b>（含提成汇总/业绩明细两个 sheet）
       </div>
       <div class="file-drop" id="file-drop-zone"
            onclick="document.getElementById('json-file-inp').click()"
@@ -552,8 +553,9 @@ button{cursor:pointer;border:none;font-family:inherit;transition:all .15s}
       <div id="json-preview-area" style="display:none;margin-top:14px">
         <div class="json-ok" id="json-preview-info"></div>
         <div style="display:flex;gap:10px;flex-wrap:wrap">
-          <button class="add-btn" style="background:rgba(52,199,138,0.1);color:var(--green);border-color:rgba(52,199,138,0.25)" onclick="doImportMembersOnly()">👥 仅导入成员名单</button>
-          <button class="add-btn" onclick="doImportFull()">🔄 完整恢复（覆盖全部）</button>
+          <button id="btn-import-members" class="add-btn" style="background:rgba(52,199,138,0.1);color:var(--green);border-color:rgba(52,199,138,0.25)" onclick="doImportMembersOnly()">👥 仅导入成员名单</button>
+          <button id="btn-import-full" class="add-btn" onclick="doImportFull()">🔄 完整导入（覆盖全部）</button>
+          <button id="btn-import-hires-only" class="add-btn" style="display:none;background:rgba(79,142,247,0.1);color:var(--blue);border-color:rgba(79,142,247,0.25)" onclick="doImportHiresOnly()">📥 追加入职记录（保留现有成员）</button>
         </div>
       </div>
     </div>
@@ -1159,6 +1161,9 @@ function openImportModal(){
   document.getElementById('json-file-inp').value='';
   document.getElementById('json-preview-area').style.display='none';
   _importJson=null;
+  document.getElementById('btn-import-members').style.display='';
+  document.getElementById('btn-import-full').style.display='';
+  document.getElementById('btn-import-hires-only').style.display='none';
   switchTab('batch');
 }
 function closeImportModal(){
@@ -1201,10 +1206,100 @@ function doBatchImport(){
   toast(msg,'ok');
 }
 
+async function _parseHireDataExcel(wb, filename){
+  const ws=wb.worksheets[0];
+  if(!ws) throw new Error('找不到工作表');
+
+  let hdrRow=-1, cCand=-1, cSalTry=-1, cSalFull=-1, cMgr=-1, cLead=-1, cSpec=-1;
+  ws.eachRow((row,rn)=>{
+    if(hdrRow>0) return;
+    row.eachCell((cell,cn)=>{
+      const v=String(cell.value||'').trim().replace(/\s+/g,'');
+      if(v==='姓名') cCand=cn;
+      if(v.includes('试用薪资')) cSalTry=cn;
+      if(v.includes('转正薪资')) cSalFull=cn;
+      if(v==='招聘主管'){ hdrRow=rn; cMgr=cn; }
+      if(v==='招聘组长') cLead=cn;
+      if(v==='招聘专员') cSpec=cn;
+    });
+  });
+  if(hdrRow<0) throw new Error('未找到表头行（需包含"招聘主管"列）');
+
+  const parseSalary=v=>{
+    if(!v) return 0;
+    const n=parseInt(String(v).replace(/[^\d]/g,''));
+    return isNaN(n)?0:n;
+  };
+
+  const roleRank={specialist:0,leader:1,manager:2};
+  const memberMap={};
+  const importHires=[];
+  let skipped=0;
+
+  ws.eachRow((row,rn)=>{
+    if(rn<=hdrRow) return;
+    const specName=cSpec>0?String(row.getCell(cSpec).value||'').trim():'';
+    const leadName=cLead>0?String(row.getCell(cLead).value||'').trim():'';
+    const mgrName =cMgr>0 ?String(row.getCell(cMgr).value||'').trim() :'';
+
+    [[specName,'specialist'],[leadName,'leader'],[mgrName,'manager']].forEach(([name,role])=>{
+      if(!name) return;
+      if(!memberMap[name]) memberMap[name]={name,role};
+      else if(roleRank[role]>roleRank[memberMap[name].role]) memberMap[name].role=role;
+    });
+
+    if(!specName){ if(mgrName||leadName||row.getCell(cCand||1).value) skipped++; return; }
+
+    const candidate=cCand>0?String(row.getCell(cCand).value||'').trim():'';
+    if(!candidate) return;
+
+    const salFull=cSalFull>0?parseSalary(row.getCell(cSalFull).value):0;
+    const salTry =cSalTry>0 ?parseSalary(row.getCell(cSalTry).value) :0;
+    const salary=salFull||salTry;
+
+    importHires.push({
+      memberName:specName, candidate, salary,
+      isOnsite:false, left7:false, left1month:false, secondHire:false
+    });
+  });
+
+  const importMembers=Object.values(memberMap);
+  _importJson={
+    _fromHireData:true,
+    _members:importMembers,
+    _hiresByName:importHires,
+    members:importMembers.map(m=>({id:0,name:m.name,role:m.role}))
+  };
+
+  document.getElementById('btn-import-members').style.display='none';
+  document.getElementById('btn-import-full').style.display='';
+  document.getElementById('btn-import-hires-only').style.display='';
+
+  const info=[
+    `<b>文件：</b>${esc(filename)}`,
+    `<b>自动识别成员：</b>${importMembers.length} 位（含主管/组长/专员层级）`,
+    `<b>入职记录：</b>${importHires.length} 条`,
+    skipped?`<b>跳过：</b>${skipped} 条（无招聘专员，如内推/三次入职）`:'',
+  ].filter(Boolean).join('　　');
+  document.getElementById('json-preview-info').innerHTML=info;
+  document.getElementById('json-preview-area').style.display='block';
+}
+
 async function _parseExcelImport(buffer, filename){
   try{
     const wb=new ExcelJS.Workbook();
     await wb.xlsx.load(buffer);
+
+    // 检测格式：有"招聘主管"列 → 入职数据Excel；有"提成汇总" sheet → 计算器导出格式
+    const ws0=wb.worksheets[0];
+    let isHireData=false;
+    if(ws0 && !wb.getWorksheet('提成汇总')){
+      ws0.eachRow((row,rn)=>{
+        if(isHireData||rn>10) return;
+        row.eachCell(cell=>{ if(String(cell.value||'').trim()==='招聘主管') isHireData=true; });
+      });
+    }
+    if(isHireData){ await _parseHireDataExcel(wb,filename); return; }
 
     const roleMap={'招聘专员':'specialist','专员':'specialist',
                    '招聘组长':'leader','组长':'leader',
@@ -1342,11 +1437,36 @@ function doImportMembersOnly(){
   toast(`已追加 ${added.length} 位成员（跳过重名 ${incoming.length-added.length} 位）`,'ok');
 }
 
+function doImportHiresOnly(){
+  if(!_importJson||!(_importJson._fromHireData||_importJson._fromExcel)) return;
+  const d=_importJson;
+  let addedMembers=0;
+  (d._members||[]).forEach(m=>{
+    if(!members.some(e=>e.name===m.name)){
+      members.push({id:uid(),name:m.name,role:m.role||'specialist'});
+      addedMembers++;
+    }
+  });
+  let addedHires=0, skippedHires=0;
+  (d._hiresByName||[]).forEach(h=>{
+    const m=members.find(x=>x.name===h.memberName);
+    if(!m){ skippedHires++; return; }
+    hires.push({id:uid(),memberId:m.id,candidate:h.candidate||'',salary:h.salary||0,
+      isOnsite:!!h.isOnsite,left7:!!h.left7,left1month:!!h.left1month,secondHire:!!h.secondHire});
+    addedHires++;
+  });
+  renderAll(); autoSave(); closeImportModal();
+  let msg=`已追加 ${addedHires} 条入职记录`;
+  if(addedMembers) msg+=`，自动新增 ${addedMembers} 位成员`;
+  if(skippedHires) msg+=`，${skippedHires} 条未匹配跳过`;
+  toast(msg,'ok');
+}
+
 function doImportFull(){
   if(!_importJson) return;
-  if(!confirm('确认完整恢复？当前全部数据将被覆盖。')) return;
+  if(!confirm('确认完整导入？当前全部数据将被覆盖。')) return;
   const d=_importJson;
-  if(d._fromExcel){
+  if(d._fromExcel||d._fromHireData){
     members=[]; hires=[]; adjs={};
     (d._members||[]).forEach(m=>members.push({id:uid(),name:m.name,role:m.role||'specialist'}));
     (d._hiresByName||[]).forEach(h=>{
@@ -1355,7 +1475,7 @@ function doImportFull(){
         isOnsite:!!h.isOnsite,left7:!!h.left7,left1month:!!h.left1month,secondHire:!!h.secondHire});
     });
     renderAll(); autoSave(); closeImportModal();
-    toast(`已恢复：${members.length} 位成员，${hires.length} 条记录`,'ok');
+    toast(`已导入：${members.length} 位成员，${hires.length} 条入职记录`,'ok');
   } else {
     if(d.month) set('f-month',d.month);
     if(d.team)  set('f-team',d.team);
