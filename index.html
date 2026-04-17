@@ -579,7 +579,11 @@ button{cursor:pointer;border:none;font-family:inherit;transition:all .15s}
 
 <!-- ③ 计算结果 -->
 <div class="card">
-  <div class="card-title">③ <span>提成计算结果</span></div>
+  <div class="card-title" style="cursor:pointer;user-select:none;margin-bottom:0" onclick="toggleSec('result-section','result-arr')">
+    ③ <span>提成计算结果</span>
+    <span style="margin-left:auto;font-size:13px;color:var(--mt)" id="result-arr">▼</span>
+  </div>
+  <div id="result-section" class="sec-body open" style="margin-top:16px">
   <div class="filter-bar" id="result-filter-bar">
     <span class="filter-lbl">筛选团队：</span>
     <select class="filter-sel" id="filter-team-sel" onchange="setFilterTeam(+this.value||null)">
@@ -613,6 +617,7 @@ button{cursor:pointer;border:none;font-family:inherit;transition:all .15s}
       </thead>
       <tbody id="result-body"></tbody>
     </table>
+  </div>
   </div>
 </div>
 
@@ -722,7 +727,8 @@ let _uid = 1;
 
 let _filterTeamId = null;   // null = 全部
 let _filterRole   = 'all';  // all | manager | leader | specialist
-let _expandedMembers = new Set(); // memberId set — 在集合里 = 展开，默认收起
+let _expandedMembers = new Set();     // memberId in set = expanded, default collapsed
+let _expandedMemberTeams = new Set(); // teamId in set = expanded, default collapsed
 let _currentMonth = '';
 
 // 将任意货币薪资折算为人民币
@@ -740,6 +746,8 @@ function now(){ return new Date().toISOString(); }
 function v(id){ const e=document.getElementById(id); return e?e.value.trim():''; }
 function set(id,val){ const e=document.getElementById(id); if(e&&val!=null) e.value=val; }
 function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+const _roleOrder={manager:0,leader:1,specialist:2};
+function sortByRole(arr){ return arr.slice().sort((a,b)=>(_roleOrder[a.role]||0)-(_roleOrder[b.role]||0)); }
 
 // ── 薪资→分值 ────────────────────────────────────────────────────
 function getSalaryTier(salary){
@@ -912,7 +920,7 @@ function renderMemberList(){
   if(!members.length){ el.innerHTML='<div class="empty">暂无成员</div>'; return; }
   const roleLabel = {specialist:'招聘专员',leader:'招聘组长',manager:'招聘主管'};
   const roleClass  = {specialist:'role-specialist',leader:'role-leader',manager:'role-manager'};
-  const rowOf = ms => ms.map(m=>`
+  const rowOf = ms => sortByRole(ms).map(m=>`
     <div class="member-row">
       <span class="member-name">${esc(m.name)}</span>
       <span class="member-role-badge ${roleClass[m.role]}">${roleLabel[m.role]}</span>
@@ -931,17 +939,34 @@ function renderMemberList(){
   teams.forEach(t=>{
     const tm = members.filter(m=>m.teamId===t.id);
     if(!tm.length) return;
+    const exp = _expandedMemberTeams.has(t.id);
     html += `<div class="team-group">
-      <div class="team-group-hdr">
+      <div class="team-group-hdr" style="cursor:pointer;user-select:none" onclick="toggleMemberTeam(${t.id})">
         <span class="team-group-name">${esc(t.name)}</span>
         <span class="team-group-count">${tm.length}人</span>
+        <span style="margin-left:auto;font-size:11px;color:var(--mt)">${exp?'▼':'▶'}</span>
       </div>
-      <div class="member-list" style="gap:6px">${rowOf(tm)}</div>
+      <div style="display:${exp?'flex':'none'};flex-direction:column;gap:6px;margin-top:6px">${rowOf(tm)}</div>
     </div>`;
   });
   const noTeam = members.filter(m=>!m.teamId);
-  if(noTeam.length) html += `<div class="no-team-group"><div style="font-size:11px;color:var(--mt);margin-bottom:6px">未分配团队</div>${rowOf(noTeam)}</div>`;
+  if(noTeam.length){
+    const exp = _expandedMemberTeams.has(0);
+    html += `<div class="no-team-group">
+      <div style="display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;padding:4px 0" onclick="toggleMemberTeam(0)">
+        <span style="font-size:11px;color:var(--mt);font-weight:600">未分配团队（${noTeam.length}人）</span>
+        <span style="font-size:11px;color:var(--mt)">${exp?'▼':'▶'}</span>
+      </div>
+      <div style="display:${exp?'flex':'none'};flex-direction:column;gap:6px">${rowOf(noTeam)}</div>
+    </div>`;
+  }
   el.innerHTML = html;
+}
+
+function toggleMemberTeam(teamId){
+  if(_expandedMemberTeams.has(teamId)) _expandedMemberTeams.delete(teamId);
+  else _expandedMemberTeams.add(teamId);
+  renderMemberList();
 }
 
 function renderHireSections(){
@@ -1039,12 +1064,12 @@ function renderHireSections(){
 
   // 按团队分组渲染
   if(!teams.length || !showMs.some(m=>m.teamId)){
-    el.innerHTML = showMs.map(renderMemberSection).join(''); return;
+    el.innerHTML = sortByRole(showMs).map(renderMemberSection).join(''); return;
   }
   let html='';
   const renderedIds=new Set();
   teams.forEach(t=>{
-    const tm=showMs.filter(m=>m.teamId===t.id);
+    const tm=sortByRole(showMs.filter(m=>m.teamId===t.id));
     if(!tm.length) return;
     html+=`<div style="margin-bottom:16px">
       <div class="team-group-hdr" style="margin-bottom:6px">
@@ -1054,7 +1079,7 @@ function renderHireSections(){
       ${tm.map(m=>{ renderedIds.add(m.id); return renderMemberSection(m); }).join('')}
     </div>`;
   });
-  const noTeam=showMs.filter(m=>!renderedIds.has(m.id));
+  const noTeam=sortByRole(showMs.filter(m=>!renderedIds.has(m.id)));
   if(noTeam.length) html+=noTeam.map(renderMemberSection).join('');
   el.innerHTML=html;
 }
@@ -1068,7 +1093,10 @@ function toggleMemberHires(memberId){
 function renderResults(){
   const results = calcResults();
   // 按筛选过滤
-  const showMs = filteredMembers().slice().sort((a,b)=>(results[b.id]?.totalScore||0)-(results[a.id]?.totalScore||0));
+  const showMs = filteredMembers().slice().sort((a,b)=>{
+    const ro=_roleOrder[a.role]-_roleOrder[b.role];
+    return ro!==0?ro:(results[b.id]?.totalScore||0)-(results[a.id]?.totalScore||0);
+  });
   const totalPayout = showMs.reduce((s,m)=>s+(results[m.id]?.totalPayout||0),0);
   const totalBonus  = showMs.reduce((s,m)=>s+(results[m.id]?.personalBonus||0)+(results[m.id]?.teamBonus||0),0);
   const totalScore  = showMs.reduce((s,m)=>s+(results[m.id]?.totalScore||0),0);
@@ -1128,19 +1156,46 @@ function renderResults(){
 function renderAdj(){
   const el = document.getElementById('adj-grid');
   if(!members.length){ el.innerHTML='<div class="empty">请先添加团队成员</div>'; return; }
-  el.innerHTML = members.map(m=>{
-    const adj = adjs[m.id]||{amount:'',note:''};
+  const withAdj = members.filter(m=>(adjs[m.id]?.amount||0)!==0);
+  const adjRows = withAdj.map(m=>{
+    const adj = adjs[m.id]||{};
     return `<div class="adj-row">
       <span class="adj-name">${esc(m.name)}</span>
       <input class="adj-inp" type="number" value="${adj.amount||''}" placeholder="0"
-             oninput="adjs[${m.id}]={amount:+this.value||0,note:adjs[${m.id}]?.note||''};renderResults();autoSave()">
+             oninput="adjs[${m.id}]={amount:+this.value||0,note:adjs[${m.id}]?.note||''};renderResults();autoSave()"
+             onblur="renderAdj()">
       <span style="font-size:12px;color:var(--mt)">元</span>
       <div class="adj-note">
-        <input class="adj-note-inp" value="${esc(adj.note)}" placeholder="说明（排名奖/刷榜奖/进步奖…）"
+        <input class="adj-note-inp" value="${esc(adj.note||'')}" placeholder="说明（排名奖/刷榜奖/进步奖…）"
                oninput="adjs[${m.id}]={amount:adjs[${m.id}]?.amount||0,note:this.value};autoSave()">
       </div>
+      <button class="del-btn" onclick="adjs[${m.id}]={amount:0,note:''};renderAdj();renderResults();autoSave()">清除</button>
     </div>`;
   }).join('');
+  const remainMs = members.filter(m=>!(adjs[m.id]?.amount||0));
+  const memberOpts = remainMs.map(m=>`<option value="${m.id}">${esc(m.name)}</option>`).join('');
+  const sep = withAdj.length && memberOpts ? 'border-top:1px solid var(--bd);padding-top:12px;margin-top:8px' : '';
+  const addPanel = memberOpts ? `
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;${sep}">
+      <select class="sel-sm" id="adj-add-member" style="width:130px">
+        <option value="">选择成员</option>${memberOpts}
+      </select>
+      <input class="adj-inp" id="adj-add-amount" type="number" placeholder="金额" style="width:100px">
+      <span style="font-size:12px;color:var(--mt)">元</span>
+      <input class="adj-note-inp" id="adj-add-note" placeholder="说明（排名奖/刷榜奖…）" style="flex:1;min-width:120px">
+      <button class="add-btn" onclick="addAdjEntry()" style="padding:5px 14px;font-size:12px">＋ 添加</button>
+    </div>` : '';
+  el.innerHTML = (withAdj.length ? adjRows : '<div class="empty" style="margin-bottom:4px">暂无调整项</div>') + addPanel;
+}
+
+function addAdjEntry(){
+  const memberId = +document.getElementById('adj-add-member').value;
+  const amount = +document.getElementById('adj-add-amount').value||0;
+  const note = document.getElementById('adj-add-note').value.trim();
+  if(!memberId){ toast('请选择成员','err'); return; }
+  if(!amount){ toast('请输入金额','err'); return; }
+  adjs[memberId]={amount,note};
+  renderAdj(); renderResults(); autoSave();
 }
 
 // ── 筛选栏 ────────────────────────────────────────────────────────
@@ -1207,8 +1262,8 @@ function renderOverview(){
     return `<div class="rank-item">
       <span class="rank-no">${medal||('#'+(i+1))}</span>
       <span class="rank-nm">${esc(t.name)}</span>
-      <span class="rank-sc" style="color:${color}">${t.avg.toFixed(1)}均分</span>
-      <span style="font-size:11px;color:var(--mt)">${t.totalScore.toFixed(1)}总分</span>
+      <span class="rank-sc" style="color:${color};min-width:70px;text-align:center">${t.avg.toFixed(1)}均分</span>
+      <span style="font-size:11px;color:var(--mt);min-width:55px;text-align:right">${t.totalScore.toFixed(1)}总分</span>
     </div>`;
   }).join(''):'<div style="font-size:11px;color:var(--mt)">暂无团队数据</div>';
 
@@ -1382,7 +1437,7 @@ function _loadMonth(month){
       _uid=s._uid||1;
     } else { teams=[]; members=[]; hires=[]; adjs={}; _uid=1; }
   }catch(e){ teams=[]; members=[]; hires=[]; adjs={}; _uid=1; }
-  _collapsedMembers.clear();
+  _expandedMembers.clear(); _expandedMemberTeams.clear();
   renderAll(); renderTeamList(); renderRates(); renderFilterBar(); renderOverview();
 }
 
