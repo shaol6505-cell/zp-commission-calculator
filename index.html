@@ -947,14 +947,6 @@ function renderHireSections(){
                 onchange="updateHire(${h.id},'left1month',this.checked)"></td>
             <td class="flag-cell"><input type="checkbox" class="flag-cb" ${h.secondHire?'checked':''}
                 onchange="updateHire(${h.id},'secondHire',this.checked)"></td>
-            <td class="flag-cell"><input type="checkbox" class="flag-cb" ${h.isOnsite?'checked':''}
-                onchange="updateHire(${h.id},'isOnsite',this.checked)"></td>
-            <td class="flag-cell"><input type="checkbox" class="flag-cb" ${h.left7?'checked':''}
-                onchange="updateHire(${h.id},'left7',this.checked)"></td>
-            <td class="flag-cell"><input type="checkbox" class="flag-cb" ${h.left1month?'checked':''}
-                onchange="updateHire(${h.id},'left1month',this.checked)"></td>
-            <td class="flag-cell"><input type="checkbox" class="flag-cb" ${h.secondHire?'checked':''}
-                onchange="updateHire(${h.id},'secondHire',this.checked)"></td>
             <td class="flag-cell"><span class="score-tag ${scoreClass}" id="stag-${h.id}">${scoreText}</span></td>
             <td><button class="del-btn" onclick="delHire(${h.id})">删</button></td>
           </tr>`;
@@ -1419,11 +1411,25 @@ async function _parseHireDataExcel(wb, filename){
   });
   if(hdrRow<0) throw new Error('未找到表头行（需包含"招聘主管"列）');
 
-  const parseSalary=v=>{
+  // 从原始字符串提取数字 + 识别货币
+  const parseSalaryVal=v=>{
     if(!v) return 0;
-    const n=parseInt(String(v).replace(/[^\d]/g,''));
+    const n=parseInt(String(v).replace(/[^\d.]/g,''));
     return isNaN(n)?0:n;
   };
+  const detectCurrency=v=>{
+    const s=String(v||'').toUpperCase();
+    if(/RMB|CNY|¥|人民币/.test(s)) return 'CNY';
+    if(/USD|\$/.test(s)) return 'USD';
+    if(/GBP|£/.test(s)) return 'GBP';
+    if(/TWD|NT\$|台幣|台币/.test(s)) return 'TWD';
+    if(/KRW|₩|韩元/.test(s)) return 'KRW';
+    if(/AED|迪拉姆/.test(s)) return 'AED';
+    if(/JPY|日元|円/.test(s)) return 'JPY';
+    return 'CNY'; // 默认人民币
+  };
+  // 同一行两个薪资列的货币需一致，取试用薪资列优先识别
+  const parseSalary=v=>parseSalaryVal(v);
 
   const roleRank={specialist:0,leader:1,manager:2};
   const memberMap={};   // name→{name,role,teamName}
@@ -1451,15 +1457,19 @@ async function _parseHireDataExcel(wb, filename){
     const candidate=cCand>0?String(row.getCell(cCand).value||'').trim():'';
     if(!candidate) return;
 
-    const salFull=cSalFull>0?parseSalary(row.getCell(cSalFull).value):0;
-    const salTry =cSalTry>0 ?parseSalary(row.getCell(cSalTry).value) :0;
+    const rawTry  = cSalTry>0 ?String(row.getCell(cSalTry).value||'') :'';
+    const rawFull = cSalFull>0?String(row.getCell(cSalFull).value||''):'';
+    const salTry  = parseSalary(rawTry);
+    const salFull = parseSalary(rawFull);
+    // 货币从薪资列原始值识别（试用列优先，没有再用转正列）
+    const currency = detectCurrency(rawTry||rawFull);
     const center =cDept>0?String(row.getCell(cDept).value||'').trim():'';
     const position=cPost>0?String(row.getCell(cPost).value||'').trim():'';
 
     importHires.push({
       memberName:specName, teamName,
       candidate, center, position,
-      salaryTrial:salTry, salaryFull:salFull, currency:'CNY',
+      salaryTrial:salTry, salaryFull:salFull, currency,
       isOnsite:false, left7:false, left1month:false, secondHire:false
     });
   });
