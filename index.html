@@ -1,0 +1,1394 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>招聘提成计算器</title>
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+<style>
+:root{
+  --bg:#0f1117;--p1:#1a1d27;--p2:#22263a;--bd:rgba(255,255,255,0.08);
+  --tx:#e2e8f0;--mt:#8b92a5;--blue:#4f8ef7;--green:#34c78a;
+  --orange:#f5a623;--red:#f55858;--purple:#a78bfa;--yellow:#fbbf24;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--tx);font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',sans-serif;font-size:14px;min-height:100vh}
+
+/* Header */
+.hdr{background:linear-gradient(135deg,#12162a 0%,#1a1f36 50%,#0f1117 100%);border-bottom:1px solid var(--bd);padding:0 28px;position:relative;overflow:hidden}
+.hdr::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 30% 50%,rgba(79,142,247,0.08) 0%,transparent 60%),radial-gradient(ellipse at 80% 30%,rgba(52,199,138,0.06) 0%,transparent 50%);pointer-events:none}
+.hdr-inner{max-width:1200px;margin:0 auto;padding:20px 0;display:flex;align-items:center;justify-content:space-between;gap:16px;position:relative;z-index:1}
+.hdr-brand{display:flex;align-items:center;gap:14px}
+.hdr-icon{width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#34c78a,#4f8ef7);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;box-shadow:0 4px 14px rgba(52,199,138,0.3)}
+.hdr-text h1{font-size:20px;font-weight:900;background:linear-gradient(90deg,#e2e8f0 0%,#a5b4fc 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:-.3px}
+.hdr-text p{font-size:12px;color:var(--mt);margin-top:3px}
+.hdr-meta{display:flex;align-items:center;gap:10px}
+.meta-inp{background:rgba(255,255,255,0.05);border:1px solid var(--bd);border-radius:8px;color:var(--tx);padding:6px 12px;font-size:13px;outline:none;font-family:inherit}
+.meta-inp:focus{border-color:var(--blue)}
+
+/* Layout */
+.main{max-width:1200px;margin:0 auto;padding:24px 28px 80px}
+.card{background:var(--p1);border:1px solid var(--bd);border-radius:12px;padding:20px 24px;margin-bottom:20px}
+.card-title{font-size:11px;font-weight:700;color:var(--mt);text-transform:uppercase;letter-spacing:.08em;margin-bottom:16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.card-title span{font-size:13px;color:var(--tx);font-weight:600;text-transform:none;letter-spacing:0}
+.card-title .badge{font-size:11px;padding:2px 9px;border-radius:12px;font-weight:600;text-transform:none;letter-spacing:0}
+
+/* Member list */
+.member-list{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+.member-row{display:flex;align-items:center;gap:10px;background:var(--p2);border:1px solid var(--bd);border-radius:9px;padding:10px 14px}
+.member-name{font-size:13px;font-weight:600;flex:1;min-width:80px}
+.member-role-badge{font-size:11px;padding:2px 10px;border-radius:10px;font-weight:600}
+.role-specialist{background:rgba(79,142,247,0.15);color:var(--blue)}
+.role-leader{background:rgba(167,139,250,0.15);color:var(--purple)}
+.role-manager{background:rgba(245,166,35,0.15);color:var(--orange)}
+.inp-sm{background:var(--bg);border:1px solid var(--bd);border-radius:6px;color:var(--tx);padding:5px 9px;font-size:12px;outline:none;font-family:inherit}
+.inp-sm:focus{border-color:var(--blue)}
+.sel-sm{background:var(--bg);border:1px solid var(--bd);border-radius:6px;color:var(--tx);padding:5px 8px;font-size:12px;outline:none;font-family:inherit}
+.sel-sm option{background:var(--p1)}
+.add-btn{background:rgba(79,142,247,0.1);color:var(--blue);border:1px solid rgba(79,142,247,0.25);border-radius:7px;padding:7px 16px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .2s}
+.add-btn:hover{background:rgba(79,142,247,0.18)}
+.del-btn{background:rgba(245,88,88,0.1);color:var(--red);border:1px solid rgba(245,88,88,0.2);border-radius:5px;padding:3px 8px;font-size:11px;cursor:pointer}
+.del-btn:hover{background:rgba(245,88,88,0.2)}
+
+/* Hire records */
+.hire-section{border:1px solid var(--bd);border-radius:9px;margin-bottom:12px;overflow:hidden}
+.hire-section-hdr{background:var(--p2);padding:10px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.hire-section-name{font-size:13px;font-weight:700}
+.hire-score-tag{font-size:11px;color:var(--green);background:rgba(52,199,138,0.1);border-radius:8px;padding:2px 9px}
+.hire-tbl{width:100%;border-collapse:collapse;font-size:12px}
+.hire-tbl th{background:rgba(255,255,255,0.03);padding:7px 10px;text-align:left;font-size:10px;color:var(--mt);font-weight:600;white-space:nowrap;border-bottom:1px solid var(--bd)}
+.hire-tbl td{padding:5px 8px;border-bottom:1px solid rgba(255,255,255,0.03)}
+.hire-tbl tr:last-child td{border-bottom:none}
+.hire-tbl tr:hover td{background:rgba(255,255,255,0.02)}
+.cell-inp{background:var(--p2);border:1px solid var(--bd);border-radius:5px;color:var(--tx);padding:4px 7px;font-size:12px;outline:none;width:100%}
+.cell-inp:focus{border-color:var(--blue)}
+.cell-num{width:90px;text-align:right}
+.flag-cell{text-align:center}
+.flag-cb{width:16px;height:16px;cursor:pointer;accent-color:var(--blue)}
+.hire-add-row{padding:8px 14px;background:rgba(79,142,247,0.03)}
+.score-tag{font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px}
+.score-invalid{background:rgba(245,88,88,0.15);color:var(--red)}
+.score-half{background:rgba(245,166,35,0.15);color:var(--orange)}
+.score-ok{background:rgba(52,199,138,0.12);color:var(--green)}
+
+/* Results */
+.result-tbl{width:100%;border-collapse:collapse;font-size:13px}
+.result-tbl th{background:var(--p2);padding:10px 12px;text-align:center;font-size:11px;color:var(--mt);font-weight:600;white-space:nowrap}
+.result-tbl th:first-child{text-align:left}
+.result-tbl td{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.04);text-align:center;vertical-align:middle}
+.result-tbl td:first-child{text-align:left;font-weight:600}
+.result-tbl tr:last-child td{border-bottom:none}
+.result-tbl tr:hover td{background:rgba(255,255,255,0.02)}
+.tier-badge{font-size:11px;font-weight:700;padding:2px 10px;border-radius:8px}
+.tier-A{background:rgba(139,146,165,0.15);color:var(--mt)}
+.tier-B{background:rgba(79,142,247,0.15);color:var(--blue)}
+.tier-C{background:rgba(52,199,138,0.15);color:var(--green)}
+.tier-none{background:rgba(245,88,88,0.1);color:var(--red)}
+.level-tag{font-size:11px;font-weight:600;padding:2px 9px;border-radius:8px}
+.level-0{background:rgba(139,146,165,0.12);color:var(--mt)}
+.level-初级{background:rgba(79,142,247,0.12);color:var(--blue)}
+.level-中级{background:rgba(167,139,250,0.12);color:var(--purple)}
+.level-高级{background:rgba(52,199,138,0.12);color:var(--green)}
+.payout-total{font-size:15px;font-weight:800;color:var(--green)}
+
+/* Adjustments */
+.adj-grid{display:flex;flex-direction:column;gap:8px}
+.adj-row{display:flex;align-items:center;gap:12px;background:var(--p2);border-radius:8px;padding:10px 14px}
+.adj-name{font-size:13px;font-weight:600;min-width:100px}
+.adj-inp{background:var(--bg);border:1px solid var(--bd);border-radius:6px;color:var(--tx);padding:5px 10px;font-size:13px;outline:none;width:120px;text-align:right;font-family:inherit}
+.adj-inp:focus{border-color:var(--orange)}
+.adj-note{flex:1}
+.adj-note-inp{background:var(--bg);border:1px solid var(--bd);border-radius:6px;color:var(--tx);padding:5px 10px;font-size:12px;outline:none;width:100%;font-family:inherit}
+.adj-note-inp:focus{border-color:var(--bd)}
+
+/* KPI */
+.kpi-bar{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px}
+.kpi{background:var(--p2);border:1px solid var(--bd);border-radius:10px;padding:12px 18px;text-align:center;min-width:100px}
+.kpi-val{font-size:22px;font-weight:800}
+.kpi-lbl{font-size:11px;color:var(--mt);margin-top:3px}
+
+/* Buttons */
+button{cursor:pointer;border:none;font-family:inherit;transition:all .15s}
+.btn-export{background:var(--green);color:#000;border-radius:9px;padding:11px 28px;font-size:14px;font-weight:800}
+.btn-export:hover{background:#2ab37a}
+.action-bar{display:flex;align-items:center;gap:12px;padding:20px 0 0;flex-wrap:wrap}
+
+/* Toast */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--p1);border:1px solid var(--bd);border-radius:10px;padding:11px 18px;font-size:13px;z-index:9999;opacity:0;transform:translateY(8px);transition:all .25s;pointer-events:none}
+.toast.show{opacity:1;transform:translateY(0)}
+.toast.ok{border-color:var(--green);color:var(--green)}
+.toast.err{border-color:var(--red);color:var(--red)}
+.toast.info{border-color:var(--blue);color:var(--blue)}
+
+/* Empty state */
+.empty{text-align:center;padding:24px;color:var(--mt);font-size:12px}
+
+/* Rule tip */
+.rule-tip{background:rgba(245,166,35,0.06);border:1px solid rgba(245,166,35,0.18);border-radius:8px;padding:10px 14px;font-size:11px;color:var(--mt);line-height:1.8;margin-bottom:16px}
+.rule-tip b{color:var(--yellow)}
+
+/* Collapsible sections */
+.sec-toggle{background:rgba(245,166,35,0.07);border:1px solid rgba(245,166,35,0.2);border-radius:9px;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;transition:background .2s;user-select:none}
+.sec-toggle:hover{background:rgba(245,166,35,0.13)}
+.sec-toggle-title{font-size:13px;font-weight:700;color:var(--yellow)}
+.sec-body{display:none;margin-top:14px}
+.sec-body.open{display:block}
+.rules-section{margin-bottom:16px}
+.rules-section-title{font-size:12px;font-weight:700;color:var(--blue);margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--bd)}
+.rules-tbl{width:100%;border-collapse:collapse;font-size:11px;margin-bottom:8px}
+.rules-tbl th{background:var(--p2);padding:5px 8px;text-align:center;font-size:10px;color:var(--mt);font-weight:600;border:1px solid var(--bd)}
+.rules-tbl td{padding:5px 8px;border:1px solid var(--bd);text-align:center;vertical-align:middle;font-size:11px}
+.rules-tbl .row-lbl{text-align:left;font-weight:600;background:rgba(255,255,255,0.01)}
+.rules-note{font-size:11px;color:var(--mt);line-height:1.85;background:rgba(255,255,255,0.02);border-radius:6px;padding:10px 12px}
+.rules-note b{color:var(--yellow)}
+.rules-note ul{margin-left:16px}
+.rules-note li{margin-bottom:3px}
+/* Usage steps */
+.usage-steps{display:grid;grid-template-columns:repeat(auto-fill,minmax(195px,1fr));gap:10px;margin-bottom:12px}
+.usage-step{background:var(--p2);border:1px solid var(--bd);border-radius:9px;padding:12px 14px}
+.usage-step-num{width:22px;height:22px;border-radius:50%;background:var(--blue);color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;margin-bottom:8px}
+.usage-step-title{font-size:12px;font-weight:700;margin-bottom:4px;color:var(--tx)}
+.usage-step-desc{font-size:11px;color:var(--mt);line-height:1.6}
+.usage-step-desc b{color:var(--tx)}
+
+/* Modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.72);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px}
+.modal{background:var(--p1);border:1px solid rgba(255,255,255,0.1);border-radius:14px;width:100%;max-width:520px;max-height:86vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,0.5)}
+.modal-hdr{display:flex;align-items:center;justify-content:space-between;padding:18px 20px 14px;border-bottom:1px solid var(--bd);position:sticky;top:0;background:var(--p1);z-index:1}
+.modal-title{font-size:15px;font-weight:700}
+.modal-close{background:rgba(255,255,255,0.06);color:var(--mt);font-size:14px;padding:4px 10px;border-radius:6px;border:1px solid var(--bd)}
+.modal-close:hover{background:rgba(245,88,88,0.12);color:var(--red);border-color:rgba(245,88,88,0.3)}
+.modal-tabs{display:flex;border-bottom:1px solid var(--bd);padding:0 20px;gap:4px}
+.mtab{background:none;color:var(--mt);border:none;border-bottom:2px solid transparent;padding:10px 14px;font-size:12px;font-weight:600;transition:all .15s;margin-bottom:-1px;border-radius:0}
+.mtab:hover{color:var(--tx)}
+.mtab.active{color:var(--blue);border-bottom-color:var(--blue)}
+.modal-panel{padding:18px 20px 22px}
+.modal-info{background:rgba(79,142,247,0.07);border:1px solid rgba(79,142,247,0.18);border-radius:7px;padding:9px 13px;font-size:11px;color:var(--mt);line-height:1.75;margin-bottom:12px}
+.modal-info b{color:var(--blue)}
+.modal-ta{width:100%;min-height:150px;background:var(--p2);border:1px solid var(--bd);border-radius:8px;color:var(--tx);padding:10px 12px;font-size:12px;outline:none;font-family:'PingFang SC','Microsoft YaHei',monospace;resize:vertical;line-height:1.8}
+.modal-ta:focus{border-color:var(--blue)}
+.modal-example{background:var(--p2);border-radius:7px;padding:8px 12px;font-size:11px;color:var(--mt);font-family:monospace;line-height:1.9;margin-bottom:12px;border:1px solid var(--bd)}
+.file-drop{background:var(--p2);border:2px dashed rgba(255,255,255,0.12);border-radius:10px;padding:32px 20px;text-align:center;cursor:pointer;transition:all .2s}
+.file-drop:hover,.file-drop.drag-over{border-color:var(--blue);background:rgba(79,142,247,0.06)}
+.json-ok{background:rgba(52,199,138,0.06);border:1px solid rgba(52,199,138,0.2);border-radius:8px;padding:10px 14px;font-size:11px;color:var(--mt);margin-bottom:12px;line-height:1.7}
+.json-ok b{color:var(--green)}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-inner">
+    <div class="hdr-brand">
+      <div class="hdr-icon">💰</div>
+      <div class="hdr-text">
+        <h1>招聘提成计算器</h1>
+        <p>v2026.02 · 专员 / 组长 / 主管三档自动核算</p>
+      </div>
+    </div>
+    <div class="hdr-meta">
+      <input class="meta-inp" type="month" id="f-month" value="" style="width:140px" oninput="autoSave()">
+      <input class="meta-inp" type="text" id="f-team" placeholder="团队名称" style="width:160px" oninput="autoSave()">
+    </div>
+  </div>
+</div>
+
+<div class="main">
+
+<!-- 使用说明 -->
+<div class="card">
+  <div class="card-title" style="cursor:pointer;margin-bottom:10px;user-select:none" onclick="toggleSec('usage-body','usage-arr')">
+    📋 <span>使用说明</span>
+    <span style="margin-left:auto;font-size:13px;color:var(--mt)" id="usage-arr">▼</span>
+  </div>
+  <div id="usage-body" class="sec-body open">
+    <div class="usage-steps">
+      <div class="usage-step">
+        <div class="usage-step-num">1</div>
+        <div class="usage-step-title">添加团队成员</div>
+        <div class="usage-step-desc">在①区域输入姓名，选择角色（<b>招聘专员 / 招聘组长 / 招聘主管</b>），点击"添加成员"</div>
+      </div>
+      <div class="usage-step">
+        <div class="usage-step-num">2</div>
+        <div class="usage-step-title">录入入职业绩</div>
+        <div class="usage-step-desc">在②区域为每位成员点击"＋添加入职记录"，填写候选人姓名（可选）及<b>转正薪资</b>，系统自动计算分值</div>
+      </div>
+      <div class="usage-step">
+        <div class="usage-step-num">3</div>
+        <div class="usage-step-title">标记特殊情况</div>
+        <div class="usage-step-desc">
+          <b>坐班</b>：勾选后固定按 2000元/分（不受档位影响）<br>
+          <b>7日离职</b>：7工作日内离职 → 0分<br>
+          <b>月内离职</b>：1个月内离职 → ×50%<br>
+          <b>二次入职</b>：不计算业绩
+        </div>
+      </div>
+      <div class="usage-step">
+        <div class="usage-step-num">4</div>
+        <div class="usage-step-title">查看计算结果</div>
+        <div class="usage-step-desc">③区域自动显示底薪＋个人提成＋团队提成＝应发合计。<b>小组档位</b>由全体专员人均分自动判定（A/B/C档）</div>
+      </div>
+      <div class="usage-step">
+        <div class="usage-step-num">5</div>
+        <div class="usage-step-title">录入激励奖金</div>
+        <div class="usage-step-desc">在④调整项中手动录入<b>排名奖、刷榜奖、进步奖、个人突破奖</b>等，填写金额和说明</div>
+      </div>
+      <div class="usage-step">
+        <div class="usage-step-num">6</div>
+        <div class="usage-step-title">导出 Excel</div>
+        <div class="usage-step-desc">点击底部"导出 Excel"，生成包含<b>提成汇总</b>与<b>业绩明细</b>两张表的电子表格</div>
+      </div>
+    </div>
+    <div class="rule-tip" style="margin-bottom:0">
+      <b>自动保存：</b>每次修改后自动保存到浏览器本地，刷新或重新打开均可恢复 ｜
+      <b>清空重填：</b>点击底部「清空重填」清除全部数据 ｜
+      <b>月份/团队：</b>右上角设置后会体现在导出的 Excel 文件名与标题中
+    </div>
+  </div>
+</div>
+
+<!-- 招聘绩效规则参考 -->
+<div class="card">
+  <div class="sec-toggle" onclick="toggleSec('rules-body','rules-arr')">
+    <span class="sec-toggle-title">📊 招聘绩效规则参考（v2026.02）— 点击展开/收起</span>
+    <span id="rules-arr" style="color:var(--yellow);font-size:13px">▶</span>
+  </div>
+  <div id="rules-body" class="sec-body">
+
+    <!-- 分值表 -->
+    <div class="rules-section">
+      <div class="rules-section-title">一、候选人分值对应表（按转正薪资）</div>
+      <div style="overflow-x:auto">
+        <table class="rules-tbl">
+          <thead><tr><th>岗位级别</th><th>薪资范围</th><th>得分</th></tr></thead>
+          <tbody>
+            <tr><td class="row-lbl">一级岗位（初级）</td><td>薪资 &lt; 10K</td><td>1 分</td></tr>
+            <tr><td class="row-lbl">一级岗位</td><td>10K ≤ 薪资 ≤ 12K</td><td>1.2 分</td></tr>
+            <tr><td class="row-lbl">一级岗位</td><td>12K &lt; 薪资 ≤ 15K</td><td>1.5 分</td></tr>
+            <tr><td class="row-lbl">二级岗位</td><td>15K &lt; 薪资 &lt; 20K</td><td>2 分</td></tr>
+            <tr><td class="row-lbl" style="color:var(--green)">三级岗位 ★高级岗起</td><td>20K ≤ 薪资 ≤ 25K</td><td>2.5 分</td></tr>
+            <tr><td class="row-lbl" style="color:var(--green)">三级岗位</td><td>25K &lt; 薪资 &lt; 30K</td><td>3 分</td></tr>
+            <tr><td class="row-lbl" style="color:var(--green)">四级岗位</td><td>30K ≤ 薪资 ≤ 35K</td><td>3.5 分</td></tr>
+            <tr><td class="row-lbl" style="color:var(--green)">四级岗位</td><td>35K &lt; 薪资 ≤ 40K</td><td>5 分</td></tr>
+            <tr><td class="row-lbl" style="color:var(--green)">五级岗位</td><td>薪资 &gt; 40K</td><td>6 分</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="rules-note">
+        <b>坐班岗位：</b>固定按 <b>2000元/分</b> 计算（不受档位影响，勾选"坐班"列）｜ 未谈转正薪资以试用薪资计算 ｜ 一~二类岗位专员可独立完成，三类以上由专员初步沟通、组长/主管重点跟进
+      </div>
+    </div>
+
+    <!-- 档位与奖金单价 -->
+    <div class="rules-section">
+      <div class="rules-section-title">二、小组档位与奖金单价（元/分）</div>
+      <div class="rule-tip" style="margin-bottom:8px">
+        档位由<b>招聘专员人均分</b>决定：
+        <b style="color:var(--mt)">A档</b> 3≤人均&lt;5 ｜
+        <b style="color:var(--blue)">B档</b> 5≤人均&lt;8 ｜
+        <b style="color:var(--green)">C档</b> 人均≥8 ｜
+        人均&lt;3分：无奖金（未达档）
+      </div>
+      <div style="overflow-x:auto">
+        <table class="rules-tbl">
+          <thead>
+            <tr>
+              <th rowspan="2">岗位类型</th>
+              <th colspan="3">招聘专员（个人提成）</th>
+              <th colspan="3">招聘组长（团队部分）</th>
+              <th colspan="3">招聘主管（全部团队）</th>
+            </tr>
+            <tr>
+              <th style="color:var(--mt)">A档</th><th style="color:var(--blue)">B档</th><th style="color:var(--green)">C档</th>
+              <th style="color:var(--mt)">A档</th><th style="color:var(--blue)">B档</th><th style="color:var(--green)">C档</th>
+              <th style="color:var(--mt)">A档</th><th style="color:var(--blue)">B档</th><th style="color:var(--green)">C档</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="row-lbl">低级岗（&lt;20K）</td>
+              <td>500</td><td>500</td><td>600</td>
+              <td>200</td><td>300</td><td>350</td>
+              <td>300</td><td>400</td><td>450</td>
+            </tr>
+            <tr>
+              <td class="row-lbl" style="color:var(--green)">高级岗（≥20K）</td>
+              <td>500</td><td>500</td><td>700</td>
+              <td>400</td><td>500</td><td>550</td>
+              <td>500</td><td>600</td><td>650</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="rules-note">
+        <ul>
+          <li><b>个人提成公式：</b>各录入记录分值×对应单价之和 − <b>1000元</b>（任务分固定扣减：2分×500元）</li>
+          <li>当月分值不足门槛不计算奖金：初级需&gt;3分，中级需&gt;5分，高级需&gt;8分</li>
+          <li><b>小组总分激励：</b>5人以内小组总分&gt;31分，A~C级奖金额+100元/分；总分&gt;41分，+300元/分；每增1名成员门槛+5分</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- 底薪级别 -->
+    <div class="rules-section">
+      <div class="rules-section-title">三、招聘专员底薪及级别标准（v2026.02）</div>
+      <div style="overflow-x:auto">
+        <table class="rules-tbl">
+          <thead><tr><th>级别</th><th>底薪</th><th>奖金起算条件</th><th>任务分扣减（固定）</th></tr></thead>
+          <tbody>
+            <tr><td>0级</td><td>8,000</td><td>月低于2分淘汰</td><td>—</td></tr>
+            <tr><td style="color:var(--blue)">初级</td><td>10,000</td><td>实际得分 &gt; 3分</td><td>2分 × 500 = <b>1000元</b></td></tr>
+            <tr><td style="color:var(--purple)">中级</td><td>12,000</td><td>实际得分 &gt; 5分</td><td>2分 × 500 = <b>1000元</b></td></tr>
+            <tr><td style="color:var(--green)">高级</td><td>15,000</td><td>实际得分 &gt; 8分</td><td>2分 × 500 = <b>1000元</b></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="rules-note">
+        <b>当月业绩高于现级别要求时，享受对应高级别底薪和奖金标准。</b><br>
+        例：专员当月5分（符合中级）→ 底薪12K，奖金 = (5−2)分 × 对应单价<br>
+        例：专员当月8分（符合高级）→ 底薪15K，奖金 = (8−2)分 × 对应单价<br>
+        <b>转正标准：</b>第一月达标2分转正（初级）；次月未达3分淘汰 ｜
+        <b>职级评定窗口：</b>1月、7月（入职不满半年不参与晋级）<br>
+        初级→中级：上半年均分≥8分 ｜ 中级→高级：上半年均分≥10分 ｜ 上季度均分低于5分降为初级，低于8分降为中级
+      </div>
+    </div>
+
+    <!-- 组长/主管 -->
+    <div class="rules-section">
+      <div class="rules-section-title">四、组长 / 主管团队提成触发条件</div>
+      <div style="overflow-x:auto">
+        <table class="rules-tbl">
+          <thead><tr><th>角色</th><th>最低人数要求</th><th>人均分门槛</th><th>人均计算范围</th><th>提成计算范围</th></tr></thead>
+          <tbody>
+            <tr>
+              <td style="color:var(--purple);font-weight:700">招聘组长</td>
+              <td>专员 ≥ 3人</td>
+              <td>专员人均 ≥ 6分</td>
+              <td>不含组长本人</td>
+              <td>组内专员业绩</td>
+            </tr>
+            <tr>
+              <td style="color:var(--orange);font-weight:700">招聘主管</td>
+              <td>专员 ≥ 8人</td>
+              <td>全团队人均 ≥ 6分</td>
+              <td>含主管本人</td>
+              <td>组长＋专员全部业绩</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="rules-note">
+        组长档位由<b>专员人均分（不含组长）</b>决定：B档（≥6分）/ C档（≥8分）｜
+        主管档位由<b>全团队人均分（含主管）</b>决定：B档（≥6分）/ C档（≥8分）<br>
+        <b>注：</b>团队业务人员总数不足8人，负责人按组长档奖金核算 ｜ 组长当月无业绩不计入业务人员人数，主管不计入
+      </div>
+    </div>
+
+    <!-- 激励奖金 -->
+    <div class="rules-section">
+      <div class="rules-section-title">五、激励奖金规则（在④调整项中手动录入）</div>
+      <div class="rules-note">
+        <ul>
+          <li><b>【排名奖】</b>团队内第一名专员奖3000（需&gt;8分，团队≥10人且当月有业绩人员≥4人）；团队≥15人可设第二名2000，≥20人可设第三名1000；全渠道第一奖5000、第二奖4000（需&gt;12分）</li>
+          <li><b>【刷榜奖（团队内）】</b>首次刷新需&gt;12分，奖4000；再次奖8000→12000→16000；下次需比上次多3分（每自然年归0）</li>
+          <li><b>【刷榜奖（全渠道）】</b>首次刷新需&gt;16分，奖8000；再次12000→16000...；不与团队内叠加，优先取全渠道奖</li>
+          <li><b>【个人突破奖】</b>当月分值≥15分，奖2000元；不与排名奖/刷榜奖/团队突破叠加（取最高）；下次突破需比上次多2分</li>
+          <li><b>【进步奖】</b>当月分值达历史最高×1.5倍奖1000元；≥2倍奖2000元（当月需&gt;5分；连续3月无业绩取消资格）</li>
+          <li><b>【导师奖（组长）】</b>新人入职3月内通过试用期且月业绩≥5分，组长奖2000元/人</li>
+          <li><b>【导师奖（主管）】</b>培养/外招新组长，带3人以上：第1月人均&gt;5发10000，第2~3月人均&gt;8发8000/&gt;5发5000（需提前报备储备组长）</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- 补充说明 -->
+    <div class="rules-section" style="margin-bottom:0">
+      <div class="rules-section-title">六、补充说明</div>
+      <div class="rules-note">
+        <ul>
+          <li>入职 <b>7工作日内</b>离职：0分；<b>1个月内</b>离职：×50%</li>
+          <li>新招专员入职1月内无业绩不计入人头；<b>当月15号前</b>离职不计人头，<b>15号后</b>离职计1人头</li>
+          <li>候选人分数按<b>转正薪资</b>计算，未谈转正按试用薪资；过渡岗出国后补差同理</li>
+          <li><b>坐班岗位</b>按 2000元/分 固定计算，与档位无关</li>
+          <li><b>二次入职</b>人选不计算业绩；入职后发现可辞退/开除；若奖金已结算则从当月奖金中扣回</li>
+          <li>小组总分激励：小组人数（含组长）≤5人，总分&gt;31分奖金+100元/分；总分&gt;41分+300元/分；每增1名成员门槛+5分</li>
+          <li>专员：连续两月未达3分，当月底薪8000，次月达标后以分值对应底薪计算 ｜ 组长/主管：一月未达标进入考核，二月仍未达标降级</li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ① 团队成员 -->
+<div class="card">
+  <div class="card-title">① <span>团队成员</span>
+    <span class="badge" id="member-count-badge" style="background:rgba(79,142,247,0.12);color:var(--blue)">0 人</span>
+  </div>
+  <div class="member-list" id="member-list"></div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap">
+    <input class="inp-sm" id="new-member-name" placeholder="成员姓名" style="width:140px" onkeydown="if(event.key==='Enter')addMember()">
+    <select class="sel-sm" id="new-member-role">
+      <option value="specialist">招聘专员</option>
+      <option value="leader">招聘组长</option>
+      <option value="manager">招聘主管</option>
+    </select>
+    <button class="add-btn" onclick="addMember()">＋ 添加成员</button>
+    <button class="add-btn" style="background:rgba(52,199,138,0.1);color:var(--green);border-color:rgba(52,199,138,0.25)" onclick="openImportModal()">📋 批量导入 / 历史数据</button>
+  </div>
+</div>
+
+<!-- ② 本月业绩录入 -->
+<div class="card">
+  <div class="card-title">② <span>本月业绩录入</span>
+    <span style="font-size:11px;color:var(--mt);text-transform:none;letter-spacing:0">每成功入职一人填一行</span>
+  </div>
+  <div class="rule-tip">
+    <b>分值规则：</b>&lt;10K=1分 · 10~12K=1.2分 · 12~15K=1.5分 · 15~20K=2分（★20K起为高级岗）· 20~25K=2.5分 · 25~30K=3分 · 30~35K=3.5分 · 35~40K=5分 · &gt;40K=6分 ｜
+    <b>任务分扣减：</b>固定扣1000元（2分×500，各档统一）｜ <b>早离职：</b>7工作日内=0分 · 1月内=×50% ｜ <b>坐班：</b>2000元/分（固定，不受档位影响）｜ <b>二次入职：</b>不计算
+  </div>
+  <div id="hire-sections"><div class="empty">请先在上方添加团队成员</div></div>
+</div>
+
+<!-- ③ 计算结果 -->
+<div class="card">
+  <div class="card-title">③ <span>提成计算结果</span></div>
+  <div class="kpi-bar" id="result-kpi"></div>
+  <div style="overflow-x:auto">
+    <table class="result-tbl" id="result-tbl">
+      <thead>
+        <tr>
+          <th style="min-width:80px">姓名</th>
+          <th>角色</th>
+          <th>本月分值</th>
+          <th>级别</th>
+          <th>底薪</th>
+          <th>小组档</th>
+          <th>个人提成</th>
+          <th>团队提成</th>
+          <th>调整项</th>
+          <th style="min-width:100px">应发合计</th>
+        </tr>
+      </thead>
+      <tbody id="result-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ④ 调整项 -->
+<div class="card">
+  <div class="card-title">④ <span>调整项</span>
+    <span style="font-size:11px;color:var(--mt);text-transform:none;letter-spacing:0">排名奖 / 刷榜奖 / 进步奖 / 个人突破奖等手动录入</span>
+  </div>
+  <div class="adj-grid" id="adj-grid"><div class="empty">请先添加团队成员</div></div>
+</div>
+
+<div class="action-bar">
+  <button class="btn-export" onclick="doExport()">💾 导出 Excel</button>
+  <button class="btn-export" style="background:#4f8ef7;color:#fff" onclick="doExportHtml()">📄 导出 HTML</button>
+  <button class="btn-export" style="background:#a78bfa;color:#fff" onclick="doExportJson()">📦 导出 JSON</button>
+  <button style="background:rgba(245,88,88,0.1);color:var(--red);border:1px solid rgba(245,88,88,0.2);border-radius:9px;padding:11px 20px;font-size:13px;font-weight:600" onclick="clearAll()">清空重填</button>
+</div>
+
+</div>
+<!-- 导入数据模态框 -->
+<div id="import-modal" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeImportModal()">
+  <div class="modal">
+    <div class="modal-hdr">
+      <span class="modal-title">📥 导入数据</span>
+      <button class="modal-close" onclick="closeImportModal()">✕</button>
+    </div>
+    <div class="modal-tabs">
+      <button class="mtab active" id="mtab-batch" onclick="switchTab('batch')">📋 批量添加成员</button>
+      <button class="mtab" id="mtab-history" onclick="switchTab('history')">📂 导入历史备份</button>
+    </div>
+
+    <!-- 批量添加成员 -->
+    <div id="mpanel-batch" class="modal-panel">
+      <div class="modal-info">
+        每行一位成员，格式：<b>姓名 角色</b>（角色可写：专员 / 组长 / 主管；省略默认为专员）
+      </div>
+      <div class="modal-example">张三 专员<br>李四 组长<br>王五 主管<br>赵六</div>
+      <textarea id="batch-text" class="modal-ta" placeholder="每行一位成员&#10;张三 专员&#10;李四 组长&#10;王五 主管&#10;赵六（不写角色默认专员）"></textarea>
+      <div style="display:flex;align-items:center;gap:12px;margin-top:12px;flex-wrap:wrap">
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--mt);cursor:pointer">
+          <input type="checkbox" id="batch-clear" style="accent-color:var(--blue)">
+          导入前清空现有成员（连同业绩记录一并清除）
+        </label>
+        <button class="add-btn" style="margin-left:auto" onclick="doBatchImport()">✓ 确认导入</button>
+      </div>
+    </div>
+
+    <!-- 导入历史备份 -->
+    <div id="mpanel-history" class="modal-panel" style="display:none">
+      <div class="modal-info">
+        选择之前通过「<b>导出 JSON</b>」保存的备份文件，可仅恢复成员名单（适合新月份），或完整恢复全部数据
+      </div>
+      <div class="file-drop" id="file-drop-zone"
+           onclick="document.getElementById('json-file-inp').click()"
+           ondragover="event.preventDefault();this.classList.add('drag-over')"
+           ondragleave="this.classList.remove('drag-over')"
+           ondrop="event.preventDefault();this.classList.remove('drag-over');onJsonFileDrop(event)">
+        <div style="font-size:32px;margin-bottom:10px">📂</div>
+        <div style="font-size:13px;font-weight:600;color:var(--tx)">点击选择 JSON 文件</div>
+        <div style="font-size:11px;color:var(--mt);margin-top:4px">或将 .json 文件拖放到此处</div>
+        <input type="file" id="json-file-inp" accept=".json" style="display:none" onchange="onJsonFileSelect(event)">
+      </div>
+      <div id="json-preview-area" style="display:none;margin-top:14px">
+        <div class="json-ok" id="json-preview-info"></div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="add-btn" style="background:rgba(52,199,138,0.1);color:var(--green);border-color:rgba(52,199,138,0.25)" onclick="doImportMembersOnly()">👥 仅导入成员名单</button>
+          <button class="add-btn" onclick="doImportFull()">🔄 完整恢复（覆盖全部）</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+// ── 常量 ────────────────────────────────────────────────────────
+const SALARY_TIERS = [
+  {max:9999,   score:1,   isHigh:false, label:'初级岗 (<10K)'},
+  {max:12000,  score:1.2, isHigh:false, label:'一级岗 (10-12K)'},
+  {max:15000,  score:1.5, isHigh:false, label:'一级岗 (12-15K)'},
+  {max:19999,  score:2,   isHigh:false, label:'二级岗 (15-20K)'},
+  {max:25000,  score:2.5, isHigh:true,  label:'三级岗 (20-25K)'},
+  {max:30000,  score:3,   isHigh:true,  label:'三级岗 (25-30K)'},
+  {max:35000,  score:3.5, isHigh:true,  label:'四级岗 (30-35K)'},
+  {max:40000,  score:5,   isHigh:true,  label:'四级岗 (35-40K)'},
+  {max:Infinity,score:6,  isHigh:true,  label:'五级岗 (>40K)'},
+];
+
+// 专员提成单价（每分）：A档/B档/C档 × 低级岗/高级岗
+const SP_RATES = {A:{low:500,high:500}, B:{low:500,high:500}, C:{low:600,high:700}};
+// 组长团队部分单价
+const LD_RATES = {A:{low:200,high:400}, B:{low:300,high:500}, C:{low:350,high:550}};
+// 主管团队部分单价
+const MG_RATES = {A:{low:300,high:500}, B:{low:400,high:600}, C:{low:450,high:650}};
+
+// ── 状态 ─────────────────────────────────────────────────────────
+let members = [];   // {id,name,role}
+let hires   = [];   // {id,memberId,candidate,salary,isOnsite,left7,left1month,secondHire}
+let adjs    = {};   // memberId → {amount,note}
+let _uid = 1;
+
+function uid(){ return _uid++; }
+function now(){ return new Date().toISOString(); }
+
+// ── 工具函数 ─────────────────────────────────────────────────────
+function v(id){ const e=document.getElementById(id); return e?e.value.trim():''; }
+function set(id,val){ const e=document.getElementById(id); if(e&&val!=null) e.value=val; }
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ── 薪资→分值 ────────────────────────────────────────────────────
+function getSalaryTier(salary){
+  return SALARY_TIERS.find(t => salary <= t.max) || SALARY_TIERS[SALARY_TIERS.length-1];
+}
+
+function hireScore(hire){
+  if(hire.secondHire) return 0;
+  if(hire.left7)      return 0;
+  const tier = getSalaryTier(hire.salary);
+  const base = tier.score;
+  return hire.left1month ? base * 0.5 : base;
+}
+
+// ── 级别判定（当月分值决定当月底薪和任务分基数） ──────────────
+// 依据PDF示例：5分=中级(任务3分→奖励2分×rate) / 8分=高级(任务2分→奖励6分×rate)
+function getEffectiveLevel(score){
+  if(score >= 8)  return {name:'高级', base:15000, task:2, threshold:8};
+  if(score >= 5)  return {name:'中级', base:12000, task:2, threshold:5};
+  if(score >= 3)  return {name:'初级', base:10000, task:2, threshold:3};
+  return            {name:'0级',  base:8000,  task:0, threshold:0};
+}
+
+// ── 档位（A/B/C） ────────────────────────────────────────────────
+function getTier(avg){
+  if(avg >= 8) return 'C';
+  if(avg >= 5) return 'B';
+  if(avg >= 3) return 'A';
+  return 'none';
+}
+
+// ── 核心计算 ─────────────────────────────────────────────────────
+function calcResults(){
+  const specialists = members.filter(m=>m.role==='specialist');
+  const leaders     = members.filter(m=>m.role==='leader');
+  const managers    = members.filter(m=>m.role==='manager');
+
+  // 每个成员的总分
+  const scoreMap = {};
+  members.forEach(m => {
+    scoreMap[m.id] = hires
+      .filter(h=>h.memberId===m.id)
+      .reduce((s,h)=>s+hireScore(h), 0);
+  });
+
+  // 有效专员人数（新入职1月内且无业绩不计入人头，这里简化：score>0 或 不是新人标记）
+  const validSpecialists = specialists.filter(m=>scoreMap[m.id]>0);
+  const specAvg = validSpecialists.length>0
+    ? validSpecialists.reduce((s,m)=>s+scoreMap[m.id],0) / validSpecialists.length : 0;
+  const specTier = getTier(specAvg);
+
+  // 包含组长的团队平均（组长有业绩时计入）
+  const teamMembers = [
+    ...specialists,
+    ...leaders.filter(l=>scoreMap[l.id]>0)
+  ];
+  const teamAvg = teamMembers.length>0
+    ? teamMembers.reduce((s,m)=>s+scoreMap[m.id],0) / teamMembers.length : 0;
+
+  // 小组总分激励（补充说明6）
+  // 小组人数 = 专员+组长（有业绩的）
+  const groupSize = teamMembers.length;
+  const groupTotal = teamMembers.reduce((s,m)=>s+scoreMap[m.id],0);
+  const baseSize5 = 5;
+  const basePts31 = 31, basePts41 = 41;
+  const extraSize = Math.max(0, groupSize - baseSize5);
+  const thresh31 = basePts31 + extraSize * 5;
+  const thresh41 = basePts41 + extraSize * 5;
+  let groupBonus100 = groupTotal > thresh31;
+  let groupBonus300 = groupTotal > thresh41;
+
+  const results = {};
+  members.forEach(member=>{
+    const totalScore = scoreMap[member.id];
+    const lv = getEffectiveLevel(totalScore);
+    const memberHires = hires.filter(h=>h.memberId===member.id);
+
+    // ─ 个人提成（所有角色算法相同） ─
+    let personalBonus = 0;
+    if(totalScore >= lv.threshold && lv.task > 0){
+      let gross = 0;
+      memberHires.forEach(h=>{
+        const s = hireScore(h);
+        if(s === 0) return;
+        const t = getSalaryTier(h.salary);
+        if(h.isOnsite){
+          gross += s * 2000;
+        } else {
+          const rate = (SP_RATES[specTier]||SP_RATES['A'])[t.isHigh?'high':'low'];
+          // 小组档位加成
+          let bonus = s * rate;
+          if(groupBonus300) bonus += s * 300;
+          else if(groupBonus100) bonus += s * 100;
+          gross += bonus;
+        }
+      });
+      // 2026.02：任务分固定扣减1000元（2分×500，各档/各级别上限均为1000元）
+      const deduct = 1000;
+      personalBonus = Math.max(0, gross - deduct);
+    }
+
+    // ─ 团队提成（组长） ─
+    let teamBonus = 0;
+    if(member.role==='leader'){
+      const hasEnoughSpec = validSpecialists.length >= 3;
+      if(hasEnoughSpec && specAvg >= 6){
+        const ldTier = specAvg>=8?'C':'B';
+        validSpecialists.forEach(spec=>{
+          hires.filter(h=>h.memberId===spec.id).forEach(h=>{
+            const s=hireScore(h); if(s===0) return;
+            const t=getSalaryTier(h.salary);
+            teamBonus += s * LD_RATES[ldTier][t.isHigh?'high':'low'];
+          });
+        });
+      }
+    }
+
+    // ─ 团队提成（主管） ─
+    if(member.role==='manager'){
+      // 主管团队人均包含主管本身，业绩算组长+专员部分
+      const mgTeamAll = [...specialists, ...leaders.filter(l=>scoreMap[l.id]>0), member];
+      const mgAvg = mgTeamAll.length>0
+        ? mgTeamAll.reduce((s,m)=>s+scoreMap[m.id],0)/mgTeamAll.length : 0;
+      const mgPerfMembers = [...specialists, ...leaders.filter(l=>scoreMap[l.id]>0)];
+      if(mgAvg>=6 && mgPerfMembers.length>=8){
+        const mgTier = mgAvg>=8?'C':'B';
+        mgPerfMembers.forEach(m2=>{
+          hires.filter(h=>h.memberId===m2.id).forEach(h=>{
+            const s=hireScore(h); if(s===0) return;
+            const t=getSalaryTier(h.salary);
+            teamBonus += s * MG_RATES[mgTier][t.isHigh?'high':'low'];
+          });
+        });
+      }
+    }
+
+    const adj = adjs[member.id]||{amount:0,note:''};
+    const adjAmt = +adj.amount||0;
+
+    results[member.id] = {
+      totalScore: Math.round(totalScore*100)/100,
+      effectiveLevel: lv,
+      specAvg: Math.round(specAvg*100)/100,
+      specTier,
+      personalBonus: Math.round(personalBonus),
+      teamBonus: Math.round(teamBonus),
+      adjAmt,
+      adjNote: adj.note||'',
+      totalPayout: Math.round(lv.base + personalBonus + teamBonus + adjAmt),
+      groupSize, groupTotal: Math.round(groupTotal*100)/100,
+      groupBonus100, groupBonus300,
+    };
+  });
+  return results;
+}
+
+// ── 渲染 ─────────────────────────────────────────────────────────
+function renderAll(){
+  renderMemberList();
+  renderHireSections();
+  renderResults();
+  renderAdj();
+}
+
+function renderMemberList(){
+  const el = document.getElementById('member-list');
+  document.getElementById('member-count-badge').textContent = members.length + ' 人';
+  if(!members.length){ el.innerHTML='<div class="empty">暂无成员</div>'; return; }
+  const roleLabel = {specialist:'招聘专员',leader:'招聘组长',manager:'招聘主管'};
+  const roleClass = {specialist:'role-specialist',leader:'role-leader',manager:'role-manager'};
+  el.innerHTML = members.map(m=>`
+    <div class="member-row">
+      <span class="member-name">${esc(m.name)}</span>
+      <span class="member-role-badge ${roleClass[m.role]}">${roleLabel[m.role]}</span>
+      <button class="del-btn" onclick="delMember(${m.id})">删除</button>
+    </div>
+  `).join('');
+}
+
+function renderHireSections(){
+  const el = document.getElementById('hire-sections');
+  if(!members.length){ el.innerHTML='<div class="empty">请先在上方添加团队成员</div>'; return; }
+  el.innerHTML = members.map(m=>{
+    const mHires = hires.filter(h=>h.memberId===m.id);
+    const totalScore = mHires.reduce((s,h)=>s+hireScore(h),0);
+    return `
+    <div class="hire-section">
+      <div class="hire-section-hdr">
+        <span class="hire-section-name">${esc(m.name)}</span>
+        <span class="hire-score-tag">本月 ${Math.round(totalScore*100)/100} 分 · ${mHires.length} 单</span>
+      </div>
+      ${mHires.length>0 ? `
+      <table class="hire-tbl">
+        <thead><tr>
+          <th style="min-width:100px">候选人</th>
+          <th style="min-width:100px">转正薪资(元)</th>
+          <th style="min-width:60px;text-align:center">坐班</th>
+          <th style="min-width:60px;text-align:center">7日离职</th>
+          <th style="min-width:70px;text-align:center">月内离职</th>
+          <th style="min-width:60px;text-align:center">二次入职</th>
+          <th style="min-width:60px;text-align:center">分值</th>
+          <th style="min-width:40px"></th>
+        </tr></thead>
+        <tbody>
+        ${mHires.map((h,i)=>{
+          const s = hireScore(h);
+          const tier = getSalaryTier(h.salary);
+          let scoreClass = 'score-ok', scoreText = s.toFixed(1)+'分';
+          if(h.secondHire){ scoreClass='score-invalid'; scoreText='无效'; }
+          else if(h.left7){ scoreClass='score-invalid'; scoreText='0分'; }
+          else if(h.left1month){ scoreClass='score-half'; scoreText=s.toFixed(1)+'分(×50%)'; }
+          return `<tr>
+            <td><input class="cell-inp" value="${esc(h.candidate)}" placeholder="可选"
+                oninput="updateHireQuiet(${h.id},'candidate',this.value)"></td>
+            <td><input class="cell-inp cell-num" type="number" min="0" value="${h.salary||''}" placeholder="0"
+                oninput="updateHireQuiet(${h.id},'salary',+this.value||0);refreshScoreTag(${h.id})"
+                onblur="renderResults()"></td>
+            <td class="flag-cell"><input type="checkbox" class="flag-cb" ${h.isOnsite?'checked':''}
+                onchange="updateHire(${h.id},'isOnsite',this.checked)"></td>
+            <td class="flag-cell"><input type="checkbox" class="flag-cb" ${h.left7?'checked':''}
+                onchange="updateHire(${h.id},'left7',this.checked)"></td>
+            <td class="flag-cell"><input type="checkbox" class="flag-cb" ${h.left1month?'checked':''}
+                onchange="updateHire(${h.id},'left1month',this.checked)"></td>
+            <td class="flag-cell"><input type="checkbox" class="flag-cb" ${h.secondHire?'checked':''}
+                onchange="updateHire(${h.id},'secondHire',this.checked)"></td>
+            <td class="flag-cell"><span class="score-tag ${scoreClass}" id="stag-${h.id}">${scoreText}</span></td>
+            <td><button class="del-btn" onclick="delHire(${h.id})">删</button></td>
+          </tr>`;
+        }).join('')}
+        </tbody>
+      </table>` : ''}
+      <div class="hire-add-row">
+        <button class="add-btn" onclick="addHire(${m.id})" style="padding:5px 14px;font-size:11px">＋ 添加入职记录</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderResults(){
+  const results = calcResults();
+  const totalPayout = members.reduce((s,m)=>s+(results[m.id]?.totalPayout||0),0);
+  const totalBonus  = members.reduce((s,m)=>s+(results[m.id]?.personalBonus||0)+(results[m.id]?.teamBonus||0),0);
+  const totalScore  = members.reduce((s,m)=>s+(results[m.id]?.totalScore||0),0);
+
+  // KPI
+  document.getElementById('result-kpi').innerHTML = `
+    <div class="kpi"><div class="kpi-val" style="color:var(--blue)">${members.length}</div><div class="kpi-lbl">团队人数</div></div>
+    <div class="kpi"><div class="kpi-val" style="color:var(--green)">${Math.round(totalScore*10)/10}</div><div class="kpi-lbl">团队总分</div></div>
+    <div class="kpi"><div class="kpi-val" style="color:var(--orange)">${Math.round(totalBonus).toLocaleString()}</div><div class="kpi-lbl">提成合计</div></div>
+    <div class="kpi"><div class="kpi-val" style="color:var(--yellow)">${Math.round(totalPayout).toLocaleString()}</div><div class="kpi-lbl">应发总额</div></div>
+  `;
+
+  // 表格
+  const roleLabel = {specialist:'专员',leader:'组长',manager:'主管'};
+  const tbody = document.getElementById('result-body');
+  if(!members.length){ tbody.innerHTML='<tr><td colspan="10" class="empty">请先添加团队成员</td></tr>'; return; }
+  tbody.innerHTML = members.map(m=>{
+    const r = results[m.id];
+    const tierHtml = r.specTier==='none'
+      ? '<span class="tier-badge tier-none">未达档</span>'
+      : `<span class="tier-badge tier-${r.specTier}">${r.specTier}档 (均${r.specAvg.toFixed(1)}分)</span>`;
+    const lvClass = 'level-'+r.effectiveLevel.name;
+    return `<tr>
+      <td>${esc(m.name)}</td>
+      <td style="text-align:center">${roleLabel[m.role]}</td>
+      <td style="text-align:center;font-weight:700;color:var(--blue)">${r.totalScore.toFixed(1)}</td>
+      <td style="text-align:center"><span class="level-tag ${lvClass}">${r.effectiveLevel.name}</span></td>
+      <td style="text-align:center">${r.effectiveLevel.base.toLocaleString()}</td>
+      <td style="text-align:center">${tierHtml}</td>
+      <td style="text-align:center;color:var(--green);font-weight:600">${r.personalBonus.toLocaleString()}</td>
+      <td style="text-align:center;color:var(--purple);font-weight:600">${r.teamBonus.toLocaleString()}</td>
+      <td style="text-align:center;color:var(--orange)">${r.adjAmt?'+'+r.adjAmt.toLocaleString():'—'}</td>
+      <td><span class="payout-total">${r.totalPayout.toLocaleString()}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+function renderAdj(){
+  const el = document.getElementById('adj-grid');
+  if(!members.length){ el.innerHTML='<div class="empty">请先添加团队成员</div>'; return; }
+  el.innerHTML = members.map(m=>{
+    const adj = adjs[m.id]||{amount:'',note:''};
+    return `<div class="adj-row">
+      <span class="adj-name">${esc(m.name)}</span>
+      <input class="adj-inp" type="number" value="${adj.amount||''}" placeholder="0"
+             oninput="adjs[${m.id}]={amount:+this.value||0,note:adjs[${m.id}]?.note||''};renderResults();autoSave()">
+      <span style="font-size:12px;color:var(--mt)">元</span>
+      <div class="adj-note">
+        <input class="adj-note-inp" value="${esc(adj.note)}" placeholder="说明（排名奖/刷榜奖/进步奖…）"
+               oninput="adjs[${m.id}]={amount:adjs[${m.id}]?.amount||0,note:this.value};autoSave()">
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── 成员操作 ─────────────────────────────────────────────────────
+function addMember(){
+  const name = v('new-member-name').trim();
+  const role = document.getElementById('new-member-role').value;
+  if(!name){ toast('请输入成员姓名','err'); return; }
+  members.push({id:uid(), name, role});
+  set('new-member-name','');
+  renderAll(); autoSave();
+}
+
+function delMember(id){
+  if(!confirm('确认删除该成员及其所有业绩记录？')) return;
+  members = members.filter(m=>m.id!==id);
+  hires   = hires.filter(h=>h.memberId!==id);
+  delete adjs[id];
+  renderAll(); autoSave();
+}
+
+// ── 业绩操作 ─────────────────────────────────────────────────────
+function addHire(memberId){
+  hires.push({id:uid(), memberId, candidate:'', salary:0, isOnsite:false, left7:false, left1month:false, secondHire:false});
+  renderHireSections(); renderResults(); autoSave();
+}
+
+// 轻量更新：只改数据，不重绘（避免输入焦点丢失）
+function updateHireQuiet(id, field, val){
+  const h = hires.find(h=>h.id===id);
+  if(h){ h[field]=val; autoSave(); }
+}
+
+// 实时刷新单行分值标签（薪资 oninput 时调用）
+function refreshScoreTag(id){
+  const h = hires.find(h=>h.id===id);
+  if(!h) return;
+  const el = document.getElementById('stag-'+id);
+  if(!el) return;
+  const s = hireScore(h);
+  let scoreClass='score-ok', scoreText=s.toFixed(1)+'分';
+  if(h.secondHire){ scoreClass='score-invalid'; scoreText='无效'; }
+  else if(h.left7){ scoreClass='score-invalid'; scoreText='0分'; }
+  else if(h.left1month){ scoreClass='score-half'; scoreText=s.toFixed(1)+'分(×50%)'; }
+  el.className='score-tag '+scoreClass;
+  el.textContent=scoreText;
+  // 同步更新本节标题分值
+  const totalScore = hires.filter(h2=>h2.memberId===h.memberId).reduce((s,h2)=>s+hireScore(h2),0);
+  const member = members.find(m=>m.id===h.memberId);
+  if(member){
+    const sectionHdrs = document.querySelectorAll('.hire-score-tag');
+    const idx = members.findIndex(m=>m.id===h.memberId);
+    if(sectionHdrs[idx]) sectionHdrs[idx].textContent=`本月 ${Math.round(totalScore*100)/100} 分 · ${hires.filter(h2=>h2.memberId===h.memberId).length} 单`;
+  }
+}
+
+function updateHire(id, field, val){
+  const h = hires.find(h=>h.id===id);
+  if(h){ h[field]=val; renderHireSections(); renderResults(); autoSave(); }
+}
+
+function delHire(id){
+  hires = hires.filter(h=>h.id!==id);
+  renderHireSections(); renderResults(); autoSave();
+}
+
+// ── 自动保存 ─────────────────────────────────────────────────────
+let _saveTimer;
+function autoSave(){
+  clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(()=>{
+    const state = {
+      month:v('f-month'), team:v('f-team'),
+      members, hires, adjs, _uid,
+      _savedAt: Date.now()
+    };
+    localStorage.setItem('zp_commission_draft', JSON.stringify(state));
+  }, 600);
+}
+
+function loadSaved(){
+  try{
+    const s = JSON.parse(localStorage.getItem('zp_commission_draft')||'{}');
+    if(!s.members) return;
+    set('f-month', s.month); set('f-team', s.team);
+    members = s.members||[];
+    hires   = s.hires||[];
+    adjs    = s.adjs||{};
+    _uid    = s._uid||1;
+    renderAll();
+    toast('已恢复上次草稿','info');
+  }catch(e){}
+}
+
+function clearAll(){
+  if(!confirm('确认清空全部数据？')) return;
+  members=[]; hires=[]; adjs={}; _uid=1;
+  set('f-month',''); set('f-team','');
+  localStorage.removeItem('zp_commission_draft');
+  renderAll(); toast('已清空');
+}
+
+// ── 导出 Excel ────────────────────────────────────────────────────
+async function doExport(){
+  if(!members.length){ toast('请先添加团队成员','err'); return; }
+  const month = v('f-month') || '未知月份';
+  const team  = v('f-team')  || '招聘团队';
+  const results = calcResults();
+  const roleLabel = {specialist:'招聘专员',leader:'招聘组长',manager:'招聘主管'};
+
+  const wb = new ExcelJS.Workbook();
+
+  // ── Sheet1: 提成汇总 ──
+  const ws1 = wb.addWorksheet('提成汇总');
+  ws1.columns = [{width:14},{width:10},{width:10},{width:8},{width:10},{width:10},{width:12},{width:12},{width:12},{width:14},{width:20}];
+  const fl = a=>({type:'pattern',pattern:'solid',fgColor:{argb:a}});
+  const bd = (s='hair',c='FFDDDDDD')=>({style:s,color:{argb:c}});
+
+  // 标题
+  {
+    const r=ws1.addRow([`${team} · ${month} · 招聘提成核算表`]);
+    ws1.mergeCells(r.number,1,r.number,11);
+    r.height=38;
+    r.getCell(1).font={bold:true,size:16,color:{argb:'FFFFFFFF'}};
+    r.getCell(1).fill=fl('FF1B4F72');
+    r.getCell(1).alignment={horizontal:'center',vertical:'middle'};
+  }
+  // 说明行
+  {
+    const r=ws1.addRow([`版本 v2026.02 | 分值规则：薪资对应分值 | 档位：A(均分3-5分) B(5-8分) C(≥8分) | 组长/主管团队分需均分≥6且人数达标`]);
+    ws1.mergeCells(r.number,1,r.number,11);
+    r.height=18;
+    r.getCell(1).font={size:9,italic:true,color:{argb:'FF888888'}};
+    r.getCell(1).fill=fl('FFF5F5F5');
+    r.getCell(1).alignment={horizontal:'left',vertical:'middle',indent:1};
+  }
+  // 空行
+  ws1.addRow([]);
+
+  // 汇总表头
+  const hdrs=['姓名','角色','本月分值','级别','底薪','小组档','个人提成','团队提成','调整项','应发合计','调整说明'];
+  {
+    const r=ws1.addRow(hdrs);
+    r.height=20;
+    r.eachCell(c=>{
+      c.font={bold:true,size:10,color:{argb:'FFFFFFFF'}};
+      c.fill=fl('FF1A5276');
+      c.alignment={horizontal:'center',vertical:'middle',wrapText:true};
+      c.border={bottom:{style:'medium',color:{argb:'FF1A5276'}}};
+    });
+  }
+  // 数据行
+  let totalRow = {base:0,personal:0,team:0,adj:0,total:0};
+  members.forEach((m,i)=>{
+    const r2 = results[m.id];
+    const tierText = r2.specTier==='none' ? '未达档' : r2.specTier+'档';
+    const row = ws1.addRow([
+      m.name, roleLabel[m.role], r2.totalScore.toFixed(1), r2.effectiveLevel.name,
+      r2.effectiveLevel.base, tierText,
+      r2.personalBonus, r2.teamBonus, r2.adjAmt||0, r2.totalPayout, r2.adjNote||''
+    ]);
+    row.height=18;
+    const bg = i%2===0?'FFFFFFFF':'FFF0F8FF';
+    row.eachCell((c,ci)=>{
+      c.fill=fl(bg); c.font={size:10};
+      c.alignment={vertical:'middle',horizontal:ci===1||ci===2||ci===11?'left':'center'};
+      c.border={bottom:bd()};
+    });
+    // 颜色
+    const tierColor = {C:'FF1E8449',B:'FF1A5276',A:'FF666666',none:'FF922B21'};
+    row.getCell(6).font={bold:true,size:10,color:{argb:tierColor[r2.specTier]||'FF666666'}};
+    row.getCell(7).font={bold:true,size:10,color:{argb:'FF1E8449'}};
+    row.getCell(8).font={bold:true,size:10,color:{argb:'FF6C3483'}};
+    row.getCell(10).font={bold:true,size:11,color:{argb:'FF196F3D'}};
+    totalRow.base+=r2.effectiveLevel.base;
+    totalRow.personal+=r2.personalBonus;
+    totalRow.team+=r2.teamBonus;
+    totalRow.adj+=r2.adjAmt||0;
+    totalRow.total+=r2.totalPayout;
+  });
+  // 合计行：列顺序 姓名(1)角色(2)分值(3)级别(4)底薪(5)档位(6)个人提成(7)团队提成(8)调整(9)合计(10)说明(11)
+  {
+    const r=ws1.addRow(['合计','','','',totalRow.base,'',totalRow.personal,totalRow.team,totalRow.adj,totalRow.total,'']);
+    r.height=22;
+    for(let i=1;i<=11;i++){
+      r.getCell(i).fill=fl('FFD6EAF8');
+      r.getCell(i).font={bold:true,size:10};
+      r.getCell(i).alignment={horizontal:'center',vertical:'middle'};
+      r.getCell(i).border={top:{style:'medium',color:{argb:'FF1A5276'}},bottom:bd()};
+    }
+    r.getCell(1).value='合计';
+    r.getCell(10).font={bold:true,size:12,color:{argb:'FF196F3D'}};
+  }
+
+  // ── Sheet2: 业绩明细 ──
+  const ws2 = wb.addWorksheet('业绩明细');
+  ws2.columns=[{width:12},{width:10},{width:16},{width:12},{width:8},{width:8},{width:8},{width:8},{width:8},{width:12}];
+  {
+    const r=ws2.addRow([`${team} · ${month} · 业绩明细`]);
+    ws2.mergeCells(r.number,1,r.number,10);
+    r.height=32;
+    r.getCell(1).font={bold:true,size:14,color:{argb:'FFFFFFFF'}};
+    r.getCell(1).fill=fl('FF1B4F72');
+    r.getCell(1).alignment={horizontal:'center',vertical:'middle'};
+  }
+  ws2.addRow([]);
+  {
+    const r=ws2.addRow(['姓名','角色','候选人','转正薪资','分值','坐班','7日离','月内离','二次','有效分值']);
+    r.height=20;
+    r.eachCell(c=>{
+      c.font={bold:true,size:10,color:{argb:'FFFFFFFF'}};
+      c.fill=fl('FF154360');
+      c.alignment={horizontal:'center',vertical:'middle'};
+    });
+  }
+  members.forEach((m,mi)=>{
+    const mHires = hires.filter(h=>h.memberId===m.id);
+    mHires.forEach((h,i)=>{
+      const t=getSalaryTier(h.salary);
+      const s=hireScore(h);
+      const row=ws2.addRow([
+        i===0?m.name:'', i===0?roleLabel[m.role]:'',
+        h.candidate||'—', h.salary||0, t.score,
+        h.isOnsite?'是':'', h.left7?'是':'', h.left1month?'是':'', h.secondHire?'是':'',
+        h.secondHire||h.left7?0:s
+      ]);
+      row.height=17;
+      const bg=mi%2===0?'FFFFFFFF':'FFF0F8FF';
+      row.eachCell(c=>{c.fill=fl(bg);c.font={size:10};c.alignment={horizontal:'center',vertical:'middle'};c.border={bottom:bd()};});
+      row.getCell(1).alignment={horizontal:'left',vertical:'middle'};
+      row.getCell(3).alignment={horizontal:'left',vertical:'middle'};
+      if(h.left7||h.secondHire) row.getCell(10).font={bold:true,size:10,color:{argb:'FFCC0000'}};
+    });
+    if(!mHires.length){
+      const row=ws2.addRow([m.name,roleLabel[m.role],'（本月无业绩）','','','','','','','']);
+      row.height=17;
+      row.eachCell(c=>{c.fill=fl('FFFAFAFA');c.font={size:10,italic:true,color:{argb:'FFAAAAAA'}};c.border={bottom:bd()};});
+    }
+  });
+
+  try{
+    const buf=await wb.xlsx.writeBuffer();
+    const blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url; a.download=`招聘提成_${team}_${month}.xlsx`;
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a); URL.revokeObjectURL(url);
+    toast('导出成功');
+  }catch(e){ toast('导出失败：'+e.message,'err'); }
+}
+
+// ── Toast ──────────────────────────────────────────────────────
+let _tt;
+function toast(msg,type='ok'){
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.className=`toast show ${type}`;
+  clearTimeout(_tt); _tt=setTimeout(()=>el.classList.remove('show'),3000);
+}
+
+// ── 批量导入 / 历史备份导入 ──────────────────────────────────
+let _importJson = null;
+
+function openImportModal(){
+  document.getElementById('import-modal').style.display='flex';
+  document.getElementById('batch-text').value='';
+  document.getElementById('batch-clear').checked=false;
+  document.getElementById('json-file-inp').value='';
+  document.getElementById('json-preview-area').style.display='none';
+  _importJson=null;
+  switchTab('batch');
+}
+function closeImportModal(){
+  document.getElementById('import-modal').style.display='none';
+}
+function switchTab(tab){
+  ['batch','history'].forEach(t=>{
+    document.getElementById('mtab-'+t).classList.toggle('active',t===tab);
+    document.getElementById('mpanel-'+t).style.display=t===tab?'block':'none';
+  });
+}
+
+function doBatchImport(){
+  const text=document.getElementById('batch-text').value.trim();
+  if(!text){ toast('请输入成员名单','err'); return; }
+  const roleMap={
+    '专员':'specialist','招聘专员':'specialist','specialist':'specialist',
+    '组长':'leader','招聘组长':'leader','leader':'leader',
+    '主管':'manager','招聘主管':'manager','manager':'manager'
+  };
+  const lines=text.split('\n').map(l=>l.trim()).filter(Boolean);
+  const toAdd=[], skipped=[];
+  lines.forEach(line=>{
+    const parts=line.split(/[\s,，\t]+/);
+    const name=parts[0].trim();
+    if(!name) return;
+    if(members.some(m=>m.name===name)){ skipped.push(name); return; }
+    const roleKey=(parts[1]||'').trim();
+    toAdd.push({id:uid(), name, role:roleMap[roleKey]||'specialist'});
+  });
+  const clearChk=document.getElementById('batch-clear').checked;
+  if(clearChk){
+    if(!confirm(`清空现有 ${members.length} 位成员（及全部业绩记录）并导入新名单？`)) return;
+    members=[]; hires=[]; adjs={};
+  }
+  members.push(...toAdd);
+  renderAll(); autoSave(); closeImportModal();
+  let msg=`已导入 ${toAdd.length} 位成员`;
+  if(skipped.length) msg+=`，跳过重名 ${skipped.length} 位`;
+  toast(msg,'ok');
+}
+
+function _parseImportData(text, filename){
+  try{
+    const data=JSON.parse(text);
+    if(!Array.isArray(data.members)) throw new Error('缺少 members 字段');
+    _importJson=data;
+    const info=[
+      `<b>文件：</b>${esc(filename)}`,
+      `<b>成员：</b>${data.members.length} 位`,
+      data.hires?`<b>入职记录：</b>${data.hires.length} 条`:'',
+      data.team ?`<b>团队：</b>${esc(data.team)}`:'',
+      data.month?`<b>月份：</b>${esc(data.month)}`:'',
+    ].filter(Boolean).join('　　');
+    document.getElementById('json-preview-info').innerHTML=info;
+    document.getElementById('json-preview-area').style.display='block';
+  }catch(e){ toast('文件格式错误：'+e.message,'err'); }
+}
+function onJsonFileSelect(e){
+  const file=e.target.files[0]; if(!file) return;
+  const r=new FileReader();
+  r.onload=ev=>_parseImportData(ev.target.result,file.name);
+  r.readAsText(file,'utf-8');
+}
+function onJsonFileDrop(e){
+  const file=e.dataTransfer.files[0]; if(!file) return;
+  const r=new FileReader();
+  r.onload=ev=>_parseImportData(ev.target.result,file.name);
+  r.readAsText(file,'utf-8');
+}
+
+function doImportMembersOnly(){
+  if(!_importJson) return;
+  const incoming=_importJson.members||[];
+  const added=incoming
+    .filter(m=>!members.some(e=>e.name===m.name))
+    .map(m=>({id:uid(),name:m.name,role:m.role||'specialist'}));
+  members.push(...added);
+  renderAll(); autoSave(); closeImportModal();
+  toast(`已追加 ${added.length} 位成员（跳过重名 ${incoming.length-added.length} 位）`,'ok');
+}
+
+function doImportFull(){
+  if(!_importJson) return;
+  if(!confirm('确认完整恢复？当前全部数据将被覆盖。')) return;
+  const d=_importJson;
+  if(d.month) set('f-month',d.month);
+  if(d.team)  set('f-team',d.team);
+  members=d.members||[];
+  hires  =d.hires||[];
+  adjs   =d.adjs||{};
+  const allIds=[...members.map(m=>m.id),...hires.map(h=>h.id)].filter(Number.isFinite);
+  _uid=allIds.length?Math.max(...allIds)+1:1;
+  renderAll(); autoSave(); closeImportModal();
+  toast(`已恢复：${members.length} 位成员，${hires.length} 条记录`,'ok');
+}
+
+// ── 导出 JSON 备份 ────────────────────────────────────────────
+function doExportJson(){
+  if(!members.length){ toast('请先添加团队成员','err'); return; }
+  const month=v('f-month')||'未知月份', team=v('f-team')||'招聘团队';
+  const state={month,team,members,hires,adjs,_uid,_savedAt:Date.now(),_version:'v2026.02'};
+  const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download=`招聘提成_${team}_${month}_备份.json`;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
+  toast('JSON备份已导出','ok');
+}
+
+// ── 导出 HTML 报告 ────────────────────────────────────────────
+function doExportHtml(){
+  if(!members.length){ toast('请先添加团队成员','err'); return; }
+  const month=v('f-month')||'未知月份', team=v('f-team')||'招聘团队';
+  const results=calcResults();
+  const roleLabel={specialist:'招聘专员',leader:'招聘组长',manager:'招聘主管'};
+  const genTime=new Date().toLocaleString('zh-CN');
+
+  const totalPayout=members.reduce((s,m)=>s+(results[m.id]?.totalPayout||0),0);
+  const totalBonus =members.reduce((s,m)=>s+(results[m.id]?.personalBonus||0)+(results[m.id]?.teamBonus||0),0);
+  const totalScore =members.reduce((s,m)=>s+(results[m.id]?.totalScore||0),0);
+
+  const summaryRows=members.map(m=>{
+    const r=results[m.id];
+    const tc={C:'#34c78a',B:'#4f8ef7',A:'#8b92a5',none:'#f55858'}[r.specTier]||'#8b92a5';
+    const lc={高级:'#34c78a',中级:'#a78bfa',初级:'#4f8ef7','0级':'#8b92a5'}[r.effectiveLevel.name]||'#8b92a5';
+    const tierText=r.specTier==='none'?'未达档':r.specTier+'档';
+    return `<tr>
+      <td style="text-align:left;font-weight:600">${esc(m.name)}</td>
+      <td>${roleLabel[m.role]}</td>
+      <td style="color:#4f8ef7;font-weight:700">${r.totalScore.toFixed(1)}</td>
+      <td style="color:${lc};font-weight:600">${r.effectiveLevel.name}</td>
+      <td>${r.effectiveLevel.base.toLocaleString()}</td>
+      <td style="color:${tc};font-weight:700">${tierText}</td>
+      <td style="color:#34c78a;font-weight:600">${r.personalBonus.toLocaleString()}</td>
+      <td style="color:#a78bfa;font-weight:600">${r.teamBonus.toLocaleString()}</td>
+      <td style="color:#f5a623">${r.adjAmt?'+'+r.adjAmt.toLocaleString():'—'}</td>
+      <td style="color:#34c78a;font-weight:800;font-size:16px">${r.totalPayout.toLocaleString()}</td>
+    </tr>`;
+  }).join('');
+
+  const details=members.map(m=>{
+    const mHires=hires.filter(h=>h.memberId===m.id);
+    const mScore=mHires.reduce((s,h)=>s+hireScore(h),0);
+    const adj=adjs[m.id]||{}, adjAmt=+adj.amount||0, adjNote=adj.note||'';
+    const rc=m.role==='specialist'?'#4f8ef7':m.role==='leader'?'#a78bfa':'#f5a623';
+    const rbg=m.role==='specialist'?'rgba(79,142,247,0.15)':m.role==='leader'?'rgba(167,139,250,0.15)':'rgba(245,166,35,0.15)';
+    const hireRows=mHires.length>0?mHires.map(h=>{
+      const s=hireScore(h), t=getSalaryTier(h.salary);
+      let scoreText=s.toFixed(1)+'分', sc='#34c78a';
+      if(h.secondHire){scoreText='无效（二次入职）';sc='#f55858';}
+      else if(h.left7){scoreText='0分（7日内离职）';sc='#f55858';}
+      else if(h.left1month){scoreText=s.toFixed(1)+'分（×50% 月内离职）';sc='#f5a623';}
+      else if(h.isOnsite){scoreText=s.toFixed(1)+'分（坐班 2000元/分）';sc='#4f8ef7';}
+      const flags=[h.isOnsite?'坐班':'',h.left7?'7日离':'',h.left1month?'月内离':'',h.secondHire?'二次入职':''].filter(Boolean).join(' · ');
+      return `<tr>
+        <td style="text-align:left">${esc(h.candidate)||'—'}</td>
+        <td>${(h.salary||0).toLocaleString()}</td>
+        <td style="color:#8b92a5">${t.label}</td>
+        <td style="color:#8b92a5;font-size:11px">${flags||'—'}</td>
+        <td style="color:${sc};font-weight:700">${scoreText}</td>
+      </tr>`;
+    }).join(''):`<tr><td colspan="5" style="text-align:center;color:#8b92a5;padding:14px;font-style:italic">本月无业绩记录</td></tr>`;
+    return `<div style="border:1px solid rgba(255,255,255,0.08);border-radius:10px;margin-bottom:12px;overflow:hidden">
+      <div style="background:#22263a;padding:10px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <span style="font-size:13px;font-weight:700;color:#e2e8f0">${esc(m.name)}</span>
+        <span style="font-size:11px;padding:2px 10px;border-radius:10px;font-weight:600;background:${rbg};color:${rc}">${roleLabel[m.role]}</span>
+        <span style="font-size:11px;color:#34c78a;background:rgba(52,199,138,0.1);border-radius:8px;padding:2px 9px">本月 ${Math.round(mScore*100)/100} 分 · ${mHires.length} 单</span>
+        ${adjAmt?`<span style="font-size:11px;color:#f5a623;margin-left:auto">调整项 +${adjAmt.toLocaleString()}元${adjNote?' · '+esc(adjNote):''}</span>`:''}
+      </div>
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead><tr style="background:rgba(255,255,255,0.03)">
+          <th style="padding:6px 10px;text-align:left;font-size:10px;color:#8b92a5;border-bottom:1px solid rgba(255,255,255,0.08);font-weight:600">候选人</th>
+          <th style="padding:6px 10px;text-align:center;font-size:10px;color:#8b92a5;border-bottom:1px solid rgba(255,255,255,0.08);font-weight:600">转正薪资</th>
+          <th style="padding:6px 10px;text-align:center;font-size:10px;color:#8b92a5;border-bottom:1px solid rgba(255,255,255,0.08);font-weight:600">岗位级别</th>
+          <th style="padding:6px 10px;text-align:center;font-size:10px;color:#8b92a5;border-bottom:1px solid rgba(255,255,255,0.08);font-weight:600">状态标记</th>
+          <th style="padding:6px 10px;text-align:center;font-size:10px;color:#8b92a5;border-bottom:1px solid rgba(255,255,255,0.08);font-weight:600">有效分值</th>
+        </tr></thead>
+        <tbody style="color:#e2e8f0">${hireRows}</tbody>
+      </table>
+    </div>`;
+  }).join('');
+
+  const css=`*{box-sizing:border-box;margin:0;padding:0}body{background:#0f1117;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',sans-serif;font-size:14px;padding:0 0 48px}.hdr{background:linear-gradient(135deg,#12162a,#1a1f36,#0f1117);border-bottom:1px solid rgba(255,255,255,0.08);padding:22px 32px}.hdr h1{font-size:20px;font-weight:900;background:linear-gradient(90deg,#e2e8f0,#a5b4fc);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:4px}.hdr .sub{font-size:12px;color:#8b92a5}.main{max-width:1100px;margin:0 auto;padding:24px 32px}.card{background:#1a1d27;border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:20px 24px;margin-bottom:20px}.card-title{font-size:11px;font-weight:700;color:#8b92a5;text-transform:uppercase;letter-spacing:.06em;margin-bottom:16px}.kpi-bar{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px}.kpi{background:#22263a;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px 20px;text-align:center;min-width:110px}.kpi-val{font-size:24px;font-weight:800}.kpi-lbl{font-size:11px;color:#8b92a5;margin-top:3px}table{width:100%;border-collapse:collapse;font-size:13px}th{background:#22263a;padding:10px 12px;text-align:center;font-size:11px;color:#8b92a5;font-weight:600;white-space:nowrap}td{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.04);text-align:center;vertical-align:middle;color:#e2e8f0}tr:last-child td{border-bottom:none}.footer{text-align:center;font-size:11px;color:#8b92a5;margin-top:32px;padding-top:18px;border-top:1px solid rgba(255,255,255,0.06)}`;
+
+  const html=`<!DOCTYPE html>
+<html lang="zh-CN">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>招聘提成报告 · ${esc(team)} · ${esc(month)}</title>
+<style>${css}</style>
+</head>
+<body>
+<div class="hdr">
+  <h1>招聘提成核算报告</h1>
+  <div class="sub">${esc(team)} · ${esc(month)} · 生成时间：${genTime} · v2026.02</div>
+</div>
+<div class="main">
+  <div class="kpi-bar">
+    <div class="kpi"><div class="kpi-val" style="color:#4f8ef7">${members.length}</div><div class="kpi-lbl">团队人数</div></div>
+    <div class="kpi"><div class="kpi-val" style="color:#34c78a">${Math.round(totalScore*10)/10}</div><div class="kpi-lbl">团队总分</div></div>
+    <div class="kpi"><div class="kpi-val" style="color:#f5a623">${Math.round(totalBonus).toLocaleString()}</div><div class="kpi-lbl">提成合计</div></div>
+    <div class="kpi"><div class="kpi-val" style="color:#fbbf24">${Math.round(totalPayout).toLocaleString()}</div><div class="kpi-lbl">应发总额</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">提成核算汇总</div>
+    <div style="overflow-x:auto"><table>
+      <thead><tr>
+        <th style="text-align:left;min-width:80px">姓名</th><th>角色</th><th>本月分值</th><th>级别</th>
+        <th>底薪</th><th>小组档</th><th>个人提成</th><th>团队提成</th><th>调整项</th>
+        <th style="min-width:100px">应发合计</th>
+      </tr></thead>
+      <tbody>${summaryRows}</tbody>
+    </table></div>
+  </div>
+  <div class="card">
+    <div class="card-title">业绩明细</div>
+    ${details}
+  </div>
+  <div class="footer">招聘提成计算器 v2026.02 · 报告由系统自动生成，仅供参考</div>
+</div>
+</body></html>`;
+
+  const blob=new Blob([html],{type:'text/html;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download=`招聘提成_${team}_${month}_报告.html`;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
+  toast('HTML报告已导出','ok');
+}
+
+// ── 折叠面板 ──────────────────────────────────────────────────
+function toggleSec(bodyId, arrowId){
+  const body = document.getElementById(bodyId);
+  const arrow = document.getElementById(arrowId);
+  const isOpen = body.classList.toggle('open');
+  if(arrow) arrow.textContent = isOpen ? '▼' : '▶';
+}
+
+// ── 初始化 ─────────────────────────────────────────────────────
+window.onload = function(){
+  // 默认当月
+  const now=new Date();
+  set('f-month',`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`);
+  loadSaved();
+  if(!members.length) renderAll();
+};
+</script>
+</body>
+</html>
