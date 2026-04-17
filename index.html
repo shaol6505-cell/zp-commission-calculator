@@ -173,6 +173,49 @@ button{cursor:pointer;border:none;font-family:inherit;transition:all .15s}
 .json-ok{background:rgba(52,199,138,0.06);border:1px solid rgba(52,199,138,0.2);border-radius:8px;padding:10px 14px;font-size:11px;color:var(--mt);margin-bottom:12px;line-height:1.7}
 .json-ok b{color:var(--green)}
 
+/* Team group */
+.team-group{margin-bottom:18px}
+.team-group-hdr{background:linear-gradient(90deg,rgba(79,142,247,0.1),rgba(79,142,247,0.02));border:1px solid rgba(79,142,247,0.22);border-radius:9px;padding:8px 16px;display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.team-group-name{font-size:12px;font-weight:800;color:var(--blue);letter-spacing:.02em}
+.team-group-count{font-size:11px;color:var(--mt);background:rgba(79,142,247,0.1);border-radius:8px;padding:2px 8px}
+.no-team-group{border-top:1px dashed rgba(255,255,255,0.08);padding-top:10px;margin-top:2px}
+
+/* Hire table extended */
+.hire-tbl-wrap{overflow-x:auto}
+.curr-sel{background:var(--bg);border:1px solid var(--bd);border-radius:5px;color:var(--tx);padding:3px 4px;font-size:11px;outline:none;font-family:inherit;width:60px}
+.curr-sel option{background:var(--p1)}
+
+/* Exchange rate panel */
+.rate-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px;margin-top:10px}
+.rate-item{background:var(--p2);border:1px solid var(--bd);border-radius:8px;padding:8px 12px;display:flex;align-items:center;gap:8px}
+.rate-label{font-size:12px;font-weight:700;min-width:38px;color:var(--tx)}
+.rate-inp{background:var(--bg);border:1px solid var(--bd);border-radius:6px;color:var(--tx);padding:4px 8px;font-size:12px;outline:none;width:78px;text-align:right;font-family:inherit}
+.rate-inp:focus{border-color:var(--blue)}
+.rate-unit{font-size:10px;color:var(--mt)}
+
+/* Clickable result row */
+.clickable-row{cursor:pointer;transition:background .15s}
+.clickable-row:hover td{background:rgba(79,142,247,0.07)!important}
+.click-hint{font-size:10px;color:var(--blue);opacity:0;transition:opacity .15s}
+.clickable-row:hover .click-hint{opacity:1}
+
+/* Detail modal */
+.detail-modal{max-width:820px}
+.detail-section{margin-bottom:16px}
+.detail-section-title{font-size:10px;font-weight:700;color:var(--mt);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid var(--bd)}
+.detail-formula{background:var(--p2);border-radius:8px;padding:10px 14px;font-size:12px;line-height:2;color:var(--mt)}
+.detail-formula b{color:var(--tx)}
+.hl-g{color:var(--green);font-weight:700}
+.hl-b{color:var(--blue);font-weight:700}
+.hl-o{color:var(--orange);font-weight:700}
+.hl-p{color:var(--purple);font-weight:700}
+.hl-r{color:var(--red);font-weight:700}
+.detail-tbl{width:100%;border-collapse:collapse;font-size:11px}
+.detail-tbl th{background:rgba(255,255,255,0.04);padding:6px 8px;text-align:center;font-size:10px;color:var(--mt);font-weight:600;border-bottom:1px solid var(--bd);white-space:nowrap}
+.detail-tbl td{padding:5px 8px;border-bottom:1px solid rgba(255,255,255,0.03);text-align:center;vertical-align:middle}
+.detail-tbl tr:last-child td{border-bottom:none}
+.detail-payout{font-size:20px;font-weight:900;color:var(--green);margin-top:4px}
+
 /* Cloud sync */
 .sync-bar{display:flex;align-items:center;gap:8px;border-left:1px solid var(--bd);padding-left:14px;margin-left:4px;flex-wrap:wrap}
 .sync-code-inp{background:rgba(255,255,255,0.05);border:1px solid var(--bd);border-radius:8px;color:var(--tx);padding:5px 10px;font-size:12px;outline:none;font-family:monospace;letter-spacing:.1em;text-transform:uppercase;width:92px}
@@ -434,18 +477,43 @@ button{cursor:pointer;border:none;font-family:inherit;transition:all .15s}
   </div>
 </div>
 
+<!-- 汇率设置 -->
+<div class="card">
+  <div class="sec-toggle" onclick="toggleSec('rates-body','rates-arr')">
+    <span class="sec-toggle-title">💱 多货币汇率设置（统一折算人民币）</span>
+    <span id="rates-arr" style="color:var(--yellow);font-size:13px">▶</span>
+  </div>
+  <div id="rates-body" class="sec-body">
+    <div style="font-size:11px;color:var(--mt);margin-bottom:6px">所有薪资按以下汇率折算为人民币后计算分值，表格只显示人民币金额。1 CNY = 1（固定）</div>
+    <div class="rate-grid" id="rate-grid"></div>
+  </div>
+</div>
+
 <!-- ① 团队成员 -->
 <div class="card">
   <div class="card-title">① <span>团队成员</span>
     <span class="badge" id="member-count-badge" style="background:rgba(79,142,247,0.12);color:var(--blue)">0 人</span>
   </div>
+  <!-- 团队管理 -->
+  <div style="margin-bottom:14px">
+    <div style="font-size:11px;color:var(--mt);margin-bottom:8px;font-weight:600">团队管理</div>
+    <div id="team-list" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px"></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <input class="inp-sm" id="new-team-name" placeholder="新建团队名称" style="width:160px" onkeydown="if(event.key==='Enter')addTeam()">
+      <button class="add-btn" style="background:rgba(167,139,250,0.1);color:var(--purple);border-color:rgba(167,139,250,0.25)" onclick="addTeam()">＋ 添加团队</button>
+    </div>
+  </div>
+  <div style="height:1px;background:var(--bd);margin-bottom:14px"></div>
   <div class="member-list" id="member-list"></div>
   <div style="display:flex;gap:10px;flex-wrap:wrap">
-    <input class="inp-sm" id="new-member-name" placeholder="成员姓名" style="width:140px" onkeydown="if(event.key==='Enter')addMember()">
+    <input class="inp-sm" id="new-member-name" placeholder="成员姓名" style="width:130px" onkeydown="if(event.key==='Enter')addMember()">
     <select class="sel-sm" id="new-member-role">
       <option value="specialist">招聘专员</option>
       <option value="leader">招聘组长</option>
       <option value="manager">招聘主管</option>
+    </select>
+    <select class="sel-sm" id="new-member-team" style="width:120px">
+      <option value="">-- 选择团队 --</option>
     </select>
     <button class="add-btn" onclick="addMember()">＋ 添加成员</button>
     <button class="add-btn" style="background:rgba(52,199,138,0.1);color:var(--green);border-color:rgba(52,199,138,0.25)" onclick="openImportModal()">📋 批量导入 / 历史数据</button>
@@ -473,6 +541,7 @@ button{cursor:pointer;border:none;font-family:inherit;transition:all .15s}
       <thead>
         <tr>
           <th style="min-width:80px">姓名</th>
+          <th>团队</th>
           <th>角色</th>
           <th>本月分值</th>
           <th>级别</th>
@@ -481,7 +550,7 @@ button{cursor:pointer;border:none;font-family:inherit;transition:all .15s}
           <th>个人提成</th>
           <th>团队提成</th>
           <th>调整项</th>
-          <th style="min-width:100px">应发合计</th>
+          <th style="min-width:110px">应发合计</th>
         </tr>
       </thead>
       <tbody id="result-body"></tbody>
@@ -586,10 +655,20 @@ const LD_RATES = {A:{low:200,high:400}, B:{low:300,high:500}, C:{low:350,high:55
 const MG_RATES = {A:{low:300,high:500}, B:{low:400,high:600}, C:{low:450,high:650}};
 
 // ── 状态 ─────────────────────────────────────────────────────────
-let members = [];   // {id,name,role}
-let hires   = [];   // {id,memberId,candidate,salary,isOnsite,left7,left1month,secondHire}
+let teams   = [];   // {id,name}
+let members = [];   // {id,name,role,teamId?}
+let hires   = [];   // {id,memberId,candidate,center?,position?,salaryTrial?,salaryFull?,currency?,isOnsite,left7,left1month,secondHire,salary?}
 let adjs    = {};   // memberId → {amount,note}
+let rates   = {USD:7.25,GBP:9.15,TWD:0.22,KRW:0.0053,AED:1.97,JPY:0.049};
 let _uid = 1;
+
+// 将任意货币薪资折算为人民币
+function getHireSalaryCNY(h){
+  const raw = h.salaryFull || h.salaryTrial || h.salary || 0;
+  const curr = h.currency||'CNY';
+  if(curr==='CNY') return raw;
+  return Math.round(raw*(rates[curr]||1));
+}
 
 function uid(){ return _uid++; }
 function now(){ return new Date().toISOString(); }
@@ -607,7 +686,7 @@ function getSalaryTier(salary){
 function hireScore(hire){
   if(hire.secondHire) return 0;
   if(hire.left7)      return 0;
-  const tier = getSalaryTier(hire.salary);
+  const tier = getSalaryTier(getHireSalaryCNY(hire));
   const base = tier.score;
   return hire.left1month ? base * 0.5 : base;
 }
@@ -682,7 +761,7 @@ function calcResults(){
       memberHires.forEach(h=>{
         const s = hireScore(h);
         if(s === 0) return;
-        const t = getSalaryTier(h.salary);
+        const t = getSalaryTier(getHireSalaryCNY(h));
         if(h.isOnsite){
           gross += s * 2000;
         } else {
@@ -708,7 +787,7 @@ function calcResults(){
         validSpecialists.forEach(spec=>{
           hires.filter(h=>h.memberId===spec.id).forEach(h=>{
             const s=hireScore(h); if(s===0) return;
-            const t=getSalaryTier(h.salary);
+            const t=getSalaryTier(getHireSalaryCNY(h));
             teamBonus += s * LD_RATES[ldTier][t.isHigh?'high':'low'];
           });
         });
@@ -727,7 +806,7 @@ function calcResults(){
         mgPerfMembers.forEach(m2=>{
           hires.filter(h=>h.memberId===m2.id).forEach(h=>{
             const s=hireScore(h); if(s===0) return;
-            const t=getSalaryTier(h.salary);
+            const t=getSalaryTier(getHireSalaryCNY(h));
             teamBonus += s * MG_RATES[mgTier][t.isHigh?'high':'low'];
           });
         });
@@ -767,19 +846,44 @@ function renderMemberList(){
   document.getElementById('member-count-badge').textContent = members.length + ' 人';
   if(!members.length){ el.innerHTML='<div class="empty">暂无成员</div>'; return; }
   const roleLabel = {specialist:'招聘专员',leader:'招聘组长',manager:'招聘主管'};
-  const roleClass = {specialist:'role-specialist',leader:'role-leader',manager:'role-manager'};
-  el.innerHTML = members.map(m=>`
+  const roleClass  = {specialist:'role-specialist',leader:'role-leader',manager:'role-manager'};
+  const rowOf = ms => ms.map(m=>`
     <div class="member-row">
       <span class="member-name">${esc(m.name)}</span>
       <span class="member-role-badge ${roleClass[m.role]}">${roleLabel[m.role]}</span>
+      <select class="sel-sm" style="font-size:11px;padding:3px 5px"
+        onchange="members.find(x=>x.id===${m.id}).teamId=+this.value||undefined;renderMemberList();renderHireSections();autoSave()">
+        <option value="">无团队</option>
+        ${teams.map(t=>`<option value="${t.id}" ${m.teamId===t.id?'selected':''}>${esc(t.name)}</option>`).join('')}
+      </select>
       <button class="del-btn" onclick="delMember(${m.id})">删除</button>
-    </div>
-  `).join('');
+    </div>`).join('');
+
+  if(!teams.length){
+    el.innerHTML = rowOf(members); return;
+  }
+  let html = '';
+  teams.forEach(t=>{
+    const tm = members.filter(m=>m.teamId===t.id);
+    if(!tm.length) return;
+    html += `<div class="team-group">
+      <div class="team-group-hdr">
+        <span class="team-group-name">${esc(t.name)}</span>
+        <span class="team-group-count">${tm.length}人</span>
+      </div>
+      <div class="member-list" style="gap:6px">${rowOf(tm)}</div>
+    </div>`;
+  });
+  const noTeam = members.filter(m=>!m.teamId);
+  if(noTeam.length) html += `<div class="no-team-group"><div style="font-size:11px;color:var(--mt);margin-bottom:6px">未分配团队</div>${rowOf(noTeam)}</div>`;
+  el.innerHTML = html;
 }
 
 function renderHireSections(){
+  const CURR_OPTS=['CNY','USD','GBP','TWD','KRW','AED','JPY'].map(c=>`<option value="${c}">${c}</option>`).join('');
   const el = document.getElementById('hire-sections');
   if(!members.length){ el.innerHTML='<div class="empty">请先在上方添加团队成员</div>'; return; }
+  const teamOf = m => { const t=teams.find(t=>t.id===m.teamId); return t?` · ${esc(t.name)}`:''; };
   el.innerHTML = members.map(m=>{
     const mHires = hires.filter(h=>h.memberId===m.id);
     const totalScore = mHires.reduce((s,h)=>s+hireScore(h),0);
@@ -787,34 +891,62 @@ function renderHireSections(){
     <div class="hire-section">
       <div class="hire-section-hdr">
         <span class="hire-section-name">${esc(m.name)}</span>
+        <span style="font-size:11px;color:var(--mt)">${teamOf(m)}</span>
         <span class="hire-score-tag">本月 ${Math.round(totalScore*100)/100} 分 · ${mHires.length} 单</span>
       </div>
       ${mHires.length>0 ? `
+      <div class="hire-tbl-wrap">
       <table class="hire-tbl">
         <thead><tr>
-          <th style="min-width:100px">候选人</th>
-          <th style="min-width:100px">转正薪资(元)</th>
-          <th style="min-width:60px;text-align:center">坐班</th>
-          <th style="min-width:60px;text-align:center">7日离职</th>
-          <th style="min-width:70px;text-align:center">月内离职</th>
-          <th style="min-width:60px;text-align:center">二次入职</th>
-          <th style="min-width:60px;text-align:center">分值</th>
-          <th style="min-width:40px"></th>
+          <th style="min-width:90px">候选人</th>
+          <th style="min-width:90px">入职中心</th>
+          <th style="min-width:100px">岗位</th>
+          <th style="min-width:80px;text-align:right">试用薪资</th>
+          <th style="min-width:80px;text-align:right">转正薪资</th>
+          <th style="min-width:62px;text-align:center">货币</th>
+          <th style="min-width:70px;text-align:right">折RMB</th>
+          <th style="min-width:55px;text-align:center">坐班</th>
+          <th style="min-width:55px;text-align:center">7日离</th>
+          <th style="min-width:55px;text-align:center">月内离</th>
+          <th style="min-width:55px;text-align:center">二次</th>
+          <th style="min-width:55px;text-align:center">分值</th>
+          <th style="min-width:36px"></th>
         </tr></thead>
         <tbody>
-        ${mHires.map((h,i)=>{
+        ${mHires.map((h)=>{
+          const cny = getHireSalaryCNY(h);
           const s = hireScore(h);
-          const tier = getSalaryTier(h.salary);
+          const tier = getSalaryTier(cny);
           let scoreClass = 'score-ok', scoreText = s.toFixed(1)+'分';
           if(h.secondHire){ scoreClass='score-invalid'; scoreText='无效'; }
           else if(h.left7){ scoreClass='score-invalid'; scoreText='0分'; }
           else if(h.left1month){ scoreClass='score-half'; scoreText=s.toFixed(1)+'分(×50%)'; }
+          const curr = h.currency||'CNY';
+          const currOpts = ['CNY','USD','GBP','TWD','KRW','AED','JPY'].map(c=>`<option value="${c}"${c===curr?' selected':''}>${c}</option>`).join('');
           return `<tr>
-            <td><input class="cell-inp" value="${esc(h.candidate)}" placeholder="可选"
+            <td><input class="cell-inp" value="${esc(h.candidate)}" placeholder="姓名"
                 oninput="updateHireQuiet(${h.id},'candidate',this.value)"></td>
-            <td><input class="cell-inp cell-num" type="number" min="0" value="${h.salary||''}" placeholder="0"
-                oninput="updateHireQuiet(${h.id},'salary',+this.value||0);refreshScoreTag(${h.id})"
+            <td><input class="cell-inp" value="${esc(h.center||'')}" placeholder="中心"
+                oninput="updateHireQuiet(${h.id},'center',this.value)"></td>
+            <td><input class="cell-inp" value="${esc(h.position||'')}" placeholder="岗位"
+                oninput="updateHireQuiet(${h.id},'position',this.value)"></td>
+            <td><input class="cell-inp cell-num" type="number" min="0" value="${h.salaryTrial||''}" placeholder="0"
+                oninput="updateHireQuiet(${h.id},'salaryTrial',+this.value||0);refreshScoreTag(${h.id})"
                 onblur="renderResults()"></td>
+            <td><input class="cell-inp cell-num" type="number" min="0" value="${h.salaryFull||''}" placeholder="0"
+                oninput="updateHireQuiet(${h.id},'salaryFull',+this.value||0);refreshScoreTag(${h.id})"
+                onblur="renderResults()"></td>
+            <td class="flag-cell"><select class="curr-sel"
+                onchange="updateHire(${h.id},'currency',this.value)">${currOpts}</select></td>
+            <td style="text-align:right;font-size:12px;color:var(--mt);padding-right:10px">${cny?cny.toLocaleString():'—'}</td>
+            <td class="flag-cell"><input type="checkbox" class="flag-cb" ${h.isOnsite?'checked':''}
+                onchange="updateHire(${h.id},'isOnsite',this.checked)"></td>
+            <td class="flag-cell"><input type="checkbox" class="flag-cb" ${h.left7?'checked':''}
+                onchange="updateHire(${h.id},'left7',this.checked)"></td>
+            <td class="flag-cell"><input type="checkbox" class="flag-cb" ${h.left1month?'checked':''}
+                onchange="updateHire(${h.id},'left1month',this.checked)"></td>
+            <td class="flag-cell"><input type="checkbox" class="flag-cb" ${h.secondHire?'checked':''}
+                onchange="updateHire(${h.id},'secondHire',this.checked)"></td>
             <td class="flag-cell"><input type="checkbox" class="flag-cb" ${h.isOnsite?'checked':''}
                 onchange="updateHire(${h.id},'isOnsite',this.checked)"></td>
             <td class="flag-cell"><input type="checkbox" class="flag-cb" ${h.left7?'checked':''}
@@ -828,7 +960,8 @@ function renderHireSections(){
           </tr>`;
         }).join('')}
         </tbody>
-      </table>` : ''}
+      </table>
+      </div>` : ''}
       <div class="hire-add-row">
         <button class="add-btn" onclick="addHire(${m.id})" style="padding:5px 14px;font-size:11px">＋ 添加入职记录</button>
       </div>
@@ -853,15 +986,17 @@ function renderResults(){
   // 表格
   const roleLabel = {specialist:'专员',leader:'组长',manager:'主管'};
   const tbody = document.getElementById('result-body');
-  if(!members.length){ tbody.innerHTML='<tr><td colspan="10" class="empty">请先添加团队成员</td></tr>'; return; }
+  if(!members.length){ tbody.innerHTML='<tr><td colspan="11" class="empty">请先添加团队成员</td></tr>'; return; }
   tbody.innerHTML = members.map(m=>{
     const r = results[m.id];
     const tierHtml = r.specTier==='none'
       ? '<span class="tier-badge tier-none">未达档</span>'
       : `<span class="tier-badge tier-${r.specTier}">${r.specTier}档 (均${r.specAvg.toFixed(1)}分)</span>`;
     const lvClass = 'level-'+r.effectiveLevel.name;
-    return `<tr>
-      <td>${esc(m.name)}</td>
+    const team = teams.find(t=>t.id===m.teamId);
+    return `<tr class="clickable-row" onclick="showDetailModal(${m.id})" title="点击查看 ${esc(m.name)} 的提成明细">
+      <td>${esc(m.name)} <span class="click-hint">· 明细</span></td>
+      <td style="text-align:center;font-size:11px;color:var(--purple)">${team?esc(team.name):'—'}</td>
       <td style="text-align:center">${roleLabel[m.role]}</td>
       <td style="text-align:center;font-weight:700;color:var(--blue)">${r.totalScore.toFixed(1)}</td>
       <td style="text-align:center"><span class="level-tag ${lvClass}">${r.effectiveLevel.name}</span></td>
@@ -893,12 +1028,63 @@ function renderAdj(){
   }).join('');
 }
 
+// ── 团队操作 ─────────────────────────────────────────────────────
+function addTeam(){
+  const name = v('new-team-name').trim();
+  if(!name){ toast('请输入团队名称','err'); return; }
+  if(teams.some(t=>t.name===name)){ toast('团队名已存在','err'); return; }
+  teams.push({id:uid(), name});
+  set('new-team-name','');
+  renderTeamList(); renderMemberList(); autoSave();
+}
+function delTeam(id){
+  if(!confirm('确认删除该团队？成员不会删除，但会移出团队归属')) return;
+  members.forEach(m=>{ if(m.teamId===id) delete m.teamId; });
+  teams = teams.filter(t=>t.id!==id);
+  renderTeamList(); renderMemberList(); autoSave();
+}
+function renderTeamList(){
+  const el = document.getElementById('team-list');
+  const sel = document.getElementById('new-member-team');
+  if(!el) return;
+  if(!teams.length){
+    el.innerHTML='<span style="font-size:11px;color:var(--mt)">暂无团队</span>';
+  } else {
+    el.innerHTML = teams.map(t=>`
+      <div style="display:inline-flex;align-items:center;gap:6px;background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.25);border-radius:8px;padding:4px 10px">
+        <span style="font-size:12px;font-weight:600;color:var(--purple)">${esc(t.name)}</span>
+        <span style="font-size:11px;color:var(--mt)">${members.filter(m=>m.teamId===t.id).length}人</span>
+        <button onclick="delTeam(${t.id})" style="background:none;border:none;color:var(--mt);font-size:11px;padding:0 2px;cursor:pointer">✕</button>
+      </div>`).join('');
+  }
+  if(sel){
+    sel.innerHTML='<option value="">-- 选择团队 --</option>'+
+      teams.map(t=>`<option value="${t.id}">${esc(t.name)}</option>`).join('');
+  }
+}
+function renderRates(){
+  const el = document.getElementById('rate-grid');
+  if(!el) return;
+  const labels={USD:'美元',GBP:'英镑',TWD:'台币',KRW:'韩元',AED:'迪拉姆',JPY:'日元'};
+  el.innerHTML = Object.entries(rates).map(([curr,rate])=>`
+    <div class="rate-item">
+      <span class="rate-label">${curr}</span>
+      <span style="font-size:11px;color:var(--mt)">（${labels[curr]||curr}）</span>
+      <input class="rate-inp" type="number" step="0.0001" min="0" value="${rate}"
+        oninput="rates['${curr}']=parseFloat(this.value)||0;renderResults();autoSave()"
+        onblur="renderHireSections();renderResults()">
+      <span class="rate-unit">元/1${curr}</span>
+    </div>`).join('');
+}
+
 // ── 成员操作 ─────────────────────────────────────────────────────
 function addMember(){
   const name = v('new-member-name').trim();
   const role = document.getElementById('new-member-role').value;
+  const teamSel = document.getElementById('new-member-team');
+  const teamId = teamSel ? (+teamSel.value||undefined) : undefined;
   if(!name){ toast('请输入成员姓名','err'); return; }
-  members.push({id:uid(), name, role});
+  members.push({id:uid(), name, role, teamId});
   set('new-member-name','');
   renderAll(); autoSave();
 }
@@ -913,7 +1099,9 @@ function delMember(id){
 
 // ── 业绩操作 ─────────────────────────────────────────────────────
 function addHire(memberId){
-  hires.push({id:uid(), memberId, candidate:'', salary:0, isOnsite:false, left7:false, left1month:false, secondHire:false});
+  hires.push({id:uid(), memberId, candidate:'', center:'', position:'',
+    salaryTrial:0, salaryFull:0, currency:'CNY',
+    isOnsite:false, left7:false, left1month:false, secondHire:false});
   renderHireSections(); renderResults(); autoSave();
 }
 
@@ -963,7 +1151,7 @@ function autoSave(){
   _saveTimer = setTimeout(()=>{
     const state = {
       month:v('f-month'), team:v('f-team'),
-      members, hires, adjs, _uid,
+      teams, members, hires, adjs, rates, _uid,
       _savedAt: Date.now()
     };
     localStorage.setItem('zp_commission_draft', JSON.stringify(state));
@@ -976,21 +1164,24 @@ function loadSaved(){
     const s = JSON.parse(localStorage.getItem('zp_commission_draft')||'{}');
     if(!s.members) return;
     set('f-month', s.month); set('f-team', s.team);
+    teams   = s.teams||[];
     members = s.members||[];
     hires   = s.hires||[];
     adjs    = s.adjs||{};
+    if(s.rates) Object.assign(rates, s.rates);
     _uid    = s._uid||1;
-    renderAll();
+    renderAll(); renderTeamList(); renderRates();
     toast('已恢复上次草稿','info');
   }catch(e){}
 }
 
 function clearAll(){
   if(!confirm('确认清空全部数据？')) return;
-  members=[]; hires=[]; adjs={}; _uid=1;
+  teams=[]; members=[]; hires=[]; adjs={}; _uid=1;
+  rates={USD:7.25,GBP:9.15,TWD:0.22,KRW:0.0053,AED:1.97,JPY:0.049};
   set('f-month',''); set('f-team','');
   localStorage.removeItem('zp_commission_draft');
-  renderAll(); toast('已清空');
+  renderAll(); renderTeamList(); renderRates(); toast('已清空');
 }
 
 // ── 导出 Excel ────────────────────────────────────────────────────
@@ -1109,7 +1300,7 @@ async function doExport(){
   members.forEach((m,mi)=>{
     const mHires = hires.filter(h=>h.memberId===m.id);
     mHires.forEach((h,i)=>{
-      const t=getSalaryTier(h.salary);
+      const t=getSalaryTier(getHireSalaryCNY(h));
       const s=hireScore(h);
       const row=ws2.addRow([
         i===0?m.name:'', i===0?roleLabel[m.role]:'',
@@ -1210,14 +1401,17 @@ async function _parseHireDataExcel(wb, filename){
   const ws=wb.worksheets[0];
   if(!ws) throw new Error('找不到工作表');
 
-  let hdrRow=-1, cCand=-1, cSalTry=-1, cSalFull=-1, cMgr=-1, cLead=-1, cSpec=-1;
+  let hdrRow=-1, cCand=-1, cDept=-1, cPost=-1, cSalTry=-1, cSalFull=-1, cChannel=-1, cMgr=-1, cLead=-1, cSpec=-1;
   ws.eachRow((row,rn)=>{
     if(hdrRow>0) return;
     row.eachCell((cell,cn)=>{
       const v=String(cell.value||'').trim().replace(/\s+/g,'');
       if(v==='姓名') cCand=cn;
+      if(v==='入职部门') cDept=cn;
+      if(v==='岗位') cPost=cn;
       if(v.includes('试用薪资')) cSalTry=cn;
       if(v.includes('转正薪资')) cSalFull=cn;
+      if(v==='招聘渠道') cChannel=cn;
       if(v==='招聘主管'){ hdrRow=rn; cMgr=cn; }
       if(v==='招聘组长') cLead=cn;
       if(v==='招聘专员') cSpec=cn;
@@ -1232,7 +1426,8 @@ async function _parseHireDataExcel(wb, filename){
   };
 
   const roleRank={specialist:0,leader:1,manager:2};
-  const memberMap={};
+  const memberMap={};   // name→{name,role,teamName}
+  const teamNameSet=new Set();
   const importHires=[];
   let skipped=0;
 
@@ -1241,11 +1436,14 @@ async function _parseHireDataExcel(wb, filename){
     const specName=cSpec>0?String(row.getCell(cSpec).value||'').trim():'';
     const leadName=cLead>0?String(row.getCell(cLead).value||'').trim():'';
     const mgrName =cMgr>0 ?String(row.getCell(cMgr).value||'').trim() :'';
+    const teamName=cChannel>0?String(row.getCell(cChannel).value||'').trim():'';
+    if(teamName) teamNameSet.add(teamName);
 
     [[specName,'specialist'],[leadName,'leader'],[mgrName,'manager']].forEach(([name,role])=>{
       if(!name) return;
-      if(!memberMap[name]) memberMap[name]={name,role};
+      if(!memberMap[name]) memberMap[name]={name,role,teamName};
       else if(roleRank[role]>roleRank[memberMap[name].role]) memberMap[name].role=role;
+      if(teamName && !memberMap[name].teamName) memberMap[name].teamName=teamName;
     });
 
     if(!specName){ if(mgrName||leadName||row.getCell(cCand||1).value) skipped++; return; }
@@ -1255,17 +1453,23 @@ async function _parseHireDataExcel(wb, filename){
 
     const salFull=cSalFull>0?parseSalary(row.getCell(cSalFull).value):0;
     const salTry =cSalTry>0 ?parseSalary(row.getCell(cSalTry).value) :0;
-    const salary=salFull||salTry;
+    const center =cDept>0?String(row.getCell(cDept).value||'').trim():'';
+    const position=cPost>0?String(row.getCell(cPost).value||'').trim():'';
 
     importHires.push({
-      memberName:specName, candidate, salary,
+      memberName:specName, teamName,
+      candidate, center, position,
+      salaryTrial:salTry, salaryFull:salFull, currency:'CNY',
       isOnsite:false, left7:false, left1month:false, secondHire:false
     });
   });
+  // 收集到的团队名
+  const importTeamNames=[...teamNameSet];
 
   const importMembers=Object.values(memberMap);
   _importJson={
     _fromHireData:true,
+    _teamNames:importTeamNames,
     _members:importMembers,
     _hiresByName:importHires,
     members:importMembers.map(m=>({id:0,name:m.name,role:m.role}))
@@ -1441,9 +1645,15 @@ function doImportHiresOnly(){
   if(!_importJson||!(_importJson._fromHireData||_importJson._fromExcel)) return;
   const d=_importJson;
   let addedMembers=0;
+  const teamIdMap2={};
+  (d._teamNames||[]).forEach(n=>{
+    if(!teams.some(t=>t.name===n)){ const id=uid(); teams.push({id,name:n}); teamIdMap2[n]=id; }
+    else { const t=teams.find(t=>t.name===n); if(t) teamIdMap2[n]=t.id; }
+  });
   (d._members||[]).forEach(m=>{
     if(!members.some(e=>e.name===m.name)){
-      members.push({id:uid(),name:m.name,role:m.role||'specialist'});
+      const teamId=m.teamName?teamIdMap2[m.teamName]:undefined;
+      members.push({id:uid(),name:m.name,role:m.role||'specialist',teamId});
       addedMembers++;
     }
   });
@@ -1451,11 +1661,13 @@ function doImportHiresOnly(){
   (d._hiresByName||[]).forEach(h=>{
     const m=members.find(x=>x.name===h.memberName);
     if(!m){ skippedHires++; return; }
-    hires.push({id:uid(),memberId:m.id,candidate:h.candidate||'',salary:h.salary||0,
+    hires.push({id:uid(),memberId:m.id,
+      candidate:h.candidate||'', center:h.center||'', position:h.position||'',
+      salaryTrial:h.salaryTrial||0, salaryFull:h.salaryFull||h.salary||0, currency:h.currency||'CNY',
       isOnsite:!!h.isOnsite,left7:!!h.left7,left1month:!!h.left1month,secondHire:!!h.secondHire});
     addedHires++;
   });
-  renderAll(); autoSave(); closeImportModal();
+  renderAll(); renderTeamList(); renderRates(); autoSave(); closeImportModal();
   let msg=`已追加 ${addedHires} 条入职记录`;
   if(addedMembers) msg+=`，自动新增 ${addedMembers} 位成员`;
   if(skippedHires) msg+=`，${skippedHires} 条未匹配跳过`;
@@ -1467,15 +1679,23 @@ function doImportFull(){
   if(!confirm('确认完整导入？当前全部数据将被覆盖。')) return;
   const d=_importJson;
   if(d._fromExcel||d._fromHireData){
-    members=[]; hires=[]; adjs={};
-    (d._members||[]).forEach(m=>members.push({id:uid(),name:m.name,role:m.role||'specialist'}));
+    teams=[]; members=[]; hires=[]; adjs={};
+    // 建立团队
+    const teamIdMap={};
+    (d._teamNames||[]).forEach(n=>{ const id=uid(); teams.push({id,name:n}); teamIdMap[n]=id; });
+    (d._members||[]).forEach(m=>{
+      const teamId=m.teamName?teamIdMap[m.teamName]:undefined;
+      members.push({id:uid(),name:m.name,role:m.role||'specialist',teamId});
+    });
     (d._hiresByName||[]).forEach(h=>{
       const m=members.find(x=>x.name===h.memberName); if(!m) return;
-      hires.push({id:uid(),memberId:m.id,candidate:h.candidate||'',salary:h.salary||0,
+      hires.push({id:uid(),memberId:m.id,
+        candidate:h.candidate||'', center:h.center||'', position:h.position||'',
+        salaryTrial:h.salaryTrial||0, salaryFull:h.salaryFull||h.salary||0, currency:h.currency||'CNY',
         isOnsite:!!h.isOnsite,left7:!!h.left7,left1month:!!h.left1month,secondHire:!!h.secondHire});
     });
-    renderAll(); autoSave(); closeImportModal();
-    toast(`已导入：${members.length} 位成员，${hires.length} 条入职记录`,'ok');
+    renderAll(); renderTeamList(); renderRates(); autoSave(); closeImportModal();
+    toast(`已导入：${teams.length} 个团队，${members.length} 位成员，${hires.length} 条入职记录`,'ok');
   } else {
     if(d.month) set('f-month',d.month);
     if(d.team)  set('f-team',d.team);
@@ -1541,7 +1761,7 @@ function doExportHtml(){
     const rc=m.role==='specialist'?'#4f8ef7':m.role==='leader'?'#a78bfa':'#f5a623';
     const rbg=m.role==='specialist'?'rgba(79,142,247,0.15)':m.role==='leader'?'rgba(167,139,250,0.15)':'rgba(245,166,35,0.15)';
     const hireRows=mHires.length>0?mHires.map(h=>{
-      const s=hireScore(h), t=getSalaryTier(h.salary);
+      const s=hireScore(h), t=getSalaryTier(getHireSalaryCNY(h));
       let scoreText=s.toFixed(1)+'分', sc='#34c78a';
       if(h.secondHire){scoreText='无效（二次入职）';sc='#f55858';}
       else if(h.left7){scoreText='0分（7日内离职）';sc='#f55858';}
@@ -1792,6 +2012,121 @@ function scheduleSyncPush(){
   }, 2500);
 }
 
+// ── 提成明细弹窗 ──────────────────────────────────────────────
+function showDetailModal(memberId){
+  const member=members.find(m=>m.id===memberId); if(!member) return;
+  const results=calcResults();
+  const r=results[memberId]; if(!r) return;
+  const mHires=hires.filter(h=>h.memberId===memberId);
+  const roleLabel={specialist:'招聘专员',leader:'招聘组长',manager:'招聘主管'};
+  const team=teams.find(t=>t.id===member.teamId);
+  const lv=r.effectiveLevel;
+
+  const hiresHtml=mHires.length?`
+    <div style="overflow-x:auto">
+    <table class="detail-tbl">
+      <thead><tr>
+        <th style="text-align:left;min-width:80px">候选人</th>
+        <th>入职中心</th><th>岗位</th>
+        <th>试用薪资</th><th>转正薪资</th><th>货币</th>
+        <th>折RMB</th><th>岗位级别</th><th>状态</th><th>有效分值</th>
+      </tr></thead><tbody>
+      ${mHires.map(h=>{
+        const cny=getHireSalaryCNY(h), tier=getSalaryTier(cny), s=hireScore(h);
+        let stateText='在职·远程',sc='var(--green)';
+        if(h.secondHire){stateText='二次入职';sc='var(--red)';}
+        else if(h.left7){stateText='7日离职';sc='var(--red)';}
+        else if(h.left1month){stateText='月内离职';sc='var(--orange)';}
+        else if(h.isOnsite){stateText='在职·坐班';sc='var(--blue)';}
+        const rawFull=h.salaryFull||0, rawTry=h.salaryTrial||0, curr=h.currency||'CNY';
+        const fmtRaw=v=>v?(v.toLocaleString()+(curr!=='CNY'?' '+curr:'')):'—';
+        return `<tr>
+          <td style="text-align:left;font-weight:600">${esc(h.candidate||'—')}</td>
+          <td>${esc(h.center||'—')}</td>
+          <td>${esc(h.position||'—')}</td>
+          <td>${fmtRaw(rawTry)}</td>
+          <td>${fmtRaw(rawFull)}</td>
+          <td>${curr}</td>
+          <td style="font-weight:600">${cny?cny.toLocaleString():'—'}</td>
+          <td style="color:var(--mt);font-size:10px">${tier.label}</td>
+          <td style="color:${sc};font-size:11px">${stateText}</td>
+          <td style="font-weight:700;color:${s>0?'var(--green)':'var(--red)'}">${h.secondHire?'无效':s.toFixed(1)+'分'}</td>
+        </tr>`;
+      }).join('')}
+      </tbody>
+    </table></div>`
+  :'<div style="text-align:center;color:var(--mt);padding:20px;font-size:12px">本月无入职记录</div>';
+
+  let bonusLines=[];
+  if(lv.task>0 && r.totalScore>=lv.threshold){
+    mHires.forEach(h=>{
+      const s=hireScore(h); if(s===0) return;
+      const cny=getHireSalaryCNY(h), t=getSalaryTier(cny);
+      if(h.isOnsite){
+        bonusLines.push(`${esc(h.candidate||'候选人')}: <b>${s.toFixed(1)}分</b> × 2000元（坐班固定） = <span class="hl-g">${(s*2000).toLocaleString()}元</span>`);
+      } else {
+        const rate=(SP_RATES[r.specTier]||SP_RATES['A'])[t.isHigh?'high':'low'];
+        let gross=s*rate, extra='';
+        if(r.groupBonus300){gross+=s*300; extra=`＋${s.toFixed(1)}×300（总分激励）`;}
+        else if(r.groupBonus100){gross+=s*100; extra=`＋${s.toFixed(1)}×100（总分激励）`;}
+        bonusLines.push(`${esc(h.candidate||'候选人')}: <b>${s.toFixed(1)}分</b>×${rate}元（${r.specTier}档·${t.isHigh?'高':'低'}级岗）${extra} = <span class="hl-g">${gross.toLocaleString()}元</span>`);
+      }
+    });
+  }
+  const bonusHtml=bonusLines.length
+    ?`<div class="detail-formula">${bonusLines.join('<br>')}
+       <br>——<br>合计毛提成 − 任务扣减<b>1000元</b> = <span class="hl-g" style="font-size:14px">${r.personalBonus.toLocaleString()}元</span></div>`
+    :`<div class="detail-formula" style="color:var(--red)">分值未达门槛（需>${lv.threshold}分），无个人提成</div>`;
+
+  const teamBonusHtml=r.teamBonus>0?`<div class="detail-formula">
+    团队提成（${roleLabel[member.role]}档）= <span class="hl-p" style="font-size:14px">${r.teamBonus.toLocaleString()}元</span></div>`:
+    `<div class="detail-formula">未触发团队提成条件</div>`;
+
+  const roleClass={specialist:'role-specialist',leader:'role-leader',manager:'role-manager'}[member.role];
+  const html=`<div id="_dtl_wrap" style="position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:2000;display:flex;align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)closeDetailModal()">
+    <div class="modal detail-modal" style="max-height:90vh;overflow-y:auto">
+      <div class="modal-hdr" style="position:sticky;top:0;background:var(--p1);z-index:1">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span class="modal-title">${esc(member.name)}</span>
+          <span class="member-role-badge ${roleClass}">${roleLabel[member.role]}</span>
+          ${team?`<span style="font-size:11px;color:var(--purple)">· ${esc(team.name)}</span>`:''}
+        </div>
+        <button class="modal-close" onclick="closeDetailModal()">✕</button>
+      </div>
+      <div style="padding:18px 20px">
+        <div class="detail-section"><div class="detail-section-title">入职业绩明细</div>${hiresHtml}</div>
+        <div class="detail-section"><div class="detail-section-title">分值 & 档位 & 级别</div>
+          <div class="detail-formula">
+            总分 <span class="hl-b">${r.totalScore.toFixed(1)}分</span>
+            专员人均 <span class="hl-b">${r.specAvg.toFixed(1)}分</span>
+            档位 <span class="${r.specTier==='C'?'hl-g':r.specTier==='B'?'hl-b':'hl-o'}">${r.specTier==='none'?'未达档':r.specTier+'档'}</span>
+            级别 <span class="${lv.name==='高级'?'hl-g':lv.name==='中级'?'hl-p':lv.name==='初级'?'hl-b':''}">${lv.name}</span>
+            底薪 <span class="hl-o">${lv.base.toLocaleString()}元</span>
+          </div>
+        </div>
+        <div class="detail-section"><div class="detail-section-title">个人提成计算</div>${bonusHtml}</div>
+        <div class="detail-section"><div class="detail-section-title">团队提成</div>${teamBonusHtml}</div>
+        ${r.adjAmt?`<div class="detail-section"><div class="detail-section-title">调整项</div>
+          <div class="detail-formula">＋<span class="hl-o">${r.adjAmt.toLocaleString()}元</span>　${esc(r.adjNote)}</div></div>`:''}
+        <div class="detail-section" style="margin-bottom:0"><div class="detail-section-title">应发合计</div>
+          <div class="detail-formula">
+            底薪 <span class="hl-o">${lv.base.toLocaleString()}</span>
+            ＋ 个人提成 <span class="hl-g">${r.personalBonus.toLocaleString()}</span>
+            ＋ 团队提成 <span class="hl-p">${r.teamBonus.toLocaleString()}</span>
+            ${r.adjAmt?`＋ 调整 <span class="hl-o">${r.adjAmt.toLocaleString()}</span>`:''}
+            ＝ <span class="detail-payout">${r.totalPayout.toLocaleString()}元</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+  const div=document.createElement('div'); div.id='_dtl_container'; div.innerHTML=html;
+  document.body.appendChild(div);
+}
+function closeDetailModal(){
+  const el=document.getElementById('_dtl_container'); if(el) el.remove();
+}
+
 // ── 折叠面板 ──────────────────────────────────────────────────
 function toggleSec(bodyId, arrowId){
   const body = document.getElementById(bodyId);
@@ -1806,6 +2141,8 @@ window.onload = function(){
   set('f-month',`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`);
   loadSaved();
   if(!members.length) renderAll();
+  renderTeamList();
+  renderRates();
   initSyncUI();
 };
 </script>
