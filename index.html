@@ -216,6 +216,40 @@ button{cursor:pointer;border:none;font-family:inherit;transition:all .15s}
 .detail-tbl tr:last-child td{border-bottom:none}
 .detail-payout{font-size:20px;font-weight:900;color:var(--green);margin-top:4px}
 
+/* Filter bar */
+.filter-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px;padding:10px 14px;background:var(--p2);border-radius:10px;border:1px solid var(--bd)}
+.filter-lbl{font-size:11px;color:var(--mt);font-weight:600;white-space:nowrap}
+.filter-sel{background:var(--bg);border:1px solid var(--bd);border-radius:7px;color:var(--tx);padding:5px 10px;font-size:12px;outline:none;font-family:inherit;max-width:160px}
+.filter-sel:focus{border-color:var(--blue)}
+.role-btns{display:flex;gap:4px;flex-wrap:wrap}
+.rbtn{background:rgba(255,255,255,0.04);border:1px solid var(--bd);border-radius:6px;color:var(--mt);padding:4px 10px;font-size:11px;font-weight:600;cursor:pointer;transition:all .15s}
+.rbtn:hover{background:rgba(255,255,255,0.08)}
+.rbtn.ra{background:rgba(79,142,247,0.15);color:var(--blue);border-color:rgba(79,142,247,0.3)}
+.rbtn.rm{background:rgba(245,166,35,0.15);color:var(--orange);border-color:rgba(245,166,35,0.3)}
+.rbtn.rl{background:rgba(167,139,250,0.15);color:var(--purple);border-color:rgba(167,139,250,0.3)}
+.rbtn.rs{background:rgba(52,199,138,0.15);color:var(--green);border-color:rgba(52,199,138,0.3)}
+
+/* Overview dashboard */
+.ov-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;margin-bottom:16px}
+.ov-card{background:var(--p2);border:1px solid var(--bd);border-radius:10px;padding:13px 15px}
+.ov-title{font-size:10px;color:var(--mt);font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px}
+.ov-val{font-size:20px;font-weight:900}
+.ov-sub{font-size:11px;color:var(--mt);margin-top:3px}
+.rank-list{display:flex;flex-direction:column;gap:5px;margin-top:4px}
+.rank-item{display:flex;align-items:center;gap:9px;padding:5px 10px;background:rgba(255,255,255,0.02);border-radius:7px;border:1px solid var(--bd)}
+.rank-no{font-size:11px;font-weight:800;min-width:18px;color:var(--mt)}
+.rank-nm{font-size:12px;font-weight:600;flex:1}
+.rank-sc{font-size:12px;font-weight:700}
+
+/* Collapsible hire sections */
+.hire-hdr-toggle{cursor:pointer;user-select:none;width:100%;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.hire-sec-arr{font-size:10px;color:var(--mt);margin-left:auto;transition:transform .2s;flex-shrink:0}
+.hire-sec-body{overflow:hidden}
+.hire-sec-body.collapsed{display:none}
+
+/* Result group header */
+.result-group-hdr td{background:linear-gradient(90deg,rgba(79,142,247,0.08),transparent);font-size:11px;font-weight:800;color:var(--blue);padding:8px 12px;border-top:1px solid rgba(79,142,247,0.2)}
+
 /* Cloud sync */
 .sync-bar{display:flex;align-items:center;gap:8px;border-left:1px solid var(--bd);padding-left:14px;margin-left:4px;flex-wrap:wrap}
 .sync-code-inp{background:rgba(255,255,255,0.05);border:1px solid var(--bd);border-radius:8px;color:var(--tx);padding:5px 10px;font-size:12px;outline:none;font-family:monospace;letter-spacing:.1em;text-transform:uppercase;width:92px}
@@ -237,7 +271,7 @@ button{cursor:pointer;border:none;font-family:inherit;transition:all .15s}
       </div>
     </div>
     <div class="hdr-meta">
-      <input class="meta-inp" type="month" id="f-month" value="" style="width:140px" oninput="autoSave()">
+      <input class="meta-inp" type="month" id="f-month" value="" style="width:140px" onchange="onMonthChange(this.value)">
       <input class="meta-inp" type="text" id="f-team" placeholder="团队名称" style="width:160px" oninput="autoSave()">
       <div class="sync-bar">
         <span style="font-size:11px;color:var(--mt)">☁️ 同步码</span>
@@ -257,9 +291,9 @@ button{cursor:pointer;border:none;font-family:inherit;transition:all .15s}
 <div class="card">
   <div class="card-title" style="cursor:pointer;margin-bottom:10px;user-select:none" onclick="toggleSec('usage-body','usage-arr')">
     📋 <span>使用说明</span>
-    <span style="margin-left:auto;font-size:13px;color:var(--mt)" id="usage-arr">▼</span>
+    <span style="margin-left:auto;font-size:13px;color:var(--mt)" id="usage-arr">▶</span>
   </div>
-  <div id="usage-body" class="sec-body open">
+  <div id="usage-body" class="sec-body">
     <div class="usage-steps">
       <div class="usage-step">
         <div class="usage-step-num">1</div>
@@ -520,6 +554,17 @@ button{cursor:pointer;border:none;font-family:inherit;transition:all .15s}
   </div>
 </div>
 
+<!-- 📊 总览 -->
+<div class="card">
+  <div class="sec-toggle" onclick="toggleSec('ov-body','ov-arr')">
+    <span class="sec-toggle-title">📊 总览 Dashboard</span>
+    <span id="ov-arr" style="color:var(--yellow);font-size:13px">▶</span>
+  </div>
+  <div id="ov-body" class="sec-body">
+    <div id="ov-content"><div class="empty">暂无数据</div></div>
+  </div>
+</div>
+
 <!-- ② 本月业绩录入 -->
 <div class="card">
   <div class="card-title">② <span>本月业绩录入</span>
@@ -535,6 +580,19 @@ button{cursor:pointer;border:none;font-family:inherit;transition:all .15s}
 <!-- ③ 计算结果 -->
 <div class="card">
   <div class="card-title">③ <span>提成计算结果</span></div>
+  <div class="filter-bar" id="result-filter-bar">
+    <span class="filter-lbl">筛选团队：</span>
+    <select class="filter-sel" id="filter-team-sel" onchange="setFilterTeam(+this.value||null)">
+      <option value="">全部团队</option>
+    </select>
+    <span class="filter-lbl" style="margin-left:8px">角色：</span>
+    <div class="role-btns" id="role-btns">
+      <button class="rbtn ra" onclick="setFilterRole('all')">全部</button>
+      <button class="rbtn" onclick="setFilterRole('manager')">主管</button>
+      <button class="rbtn" onclick="setFilterRole('leader')">组长</button>
+      <button class="rbtn" onclick="setFilterRole('specialist')">专员</button>
+    </div>
+  </div>
   <div class="kpi-bar" id="result-kpi"></div>
   <div style="overflow-x:auto">
     <table class="result-tbl" id="result-tbl">
@@ -655,12 +713,17 @@ const LD_RATES = {A:{low:200,high:400}, B:{low:300,high:500}, C:{low:350,high:55
 const MG_RATES = {A:{low:300,high:500}, B:{low:400,high:600}, C:{low:450,high:650}};
 
 // ── 状态 ─────────────────────────────────────────────────────────
-let teams   = [];   // {id,name}
-let members = [];   // {id,name,role,teamId?}
-let hires   = [];   // {id,memberId,candidate,center?,position?,salaryTrial?,salaryFull?,currency?,isOnsite,left7,left1month,secondHire,salary?}
-let adjs    = {};   // memberId → {amount,note}
+let teams   = [];
+let members = [];
+let hires   = [];
+let adjs    = {};
 let rates   = {USD:7.25,GBP:9.15,TWD:0.22,KRW:0.0053,AED:1.97,JPY:0.049};
 let _uid = 1;
+
+let _filterTeamId = null;   // null = 全部
+let _filterRole   = 'all';  // all | manager | leader | specialist
+let _collapsedMembers = new Set(); // memberId set
+let _currentMonth = '';
 
 // 将任意货币薪资折算为人民币
 function getHireSalaryCNY(h){
@@ -839,6 +902,8 @@ function renderAll(){
   renderHireSections();
   renderResults();
   renderAdj();
+  renderOverview();
+  renderFilterBar();
 }
 
 function renderMemberList(){
@@ -883,17 +948,28 @@ function renderHireSections(){
   const CURR_OPTS=['CNY','USD','GBP','TWD','KRW','AED','JPY'].map(c=>`<option value="${c}">${c}</option>`).join('');
   const el = document.getElementById('hire-sections');
   if(!members.length){ el.innerHTML='<div class="empty">请先在上方添加团队成员</div>'; return; }
-  const teamOf = m => { const t=teams.find(t=>t.id===m.teamId); return t?` · ${esc(t.name)}`:''; };
-  el.innerHTML = members.map(m=>{
+  const roleLabel={specialist:'招聘专员',leader:'招聘组长',manager:'招聘主管'};
+  const roleClass={specialist:'role-specialist',leader:'role-leader',manager:'role-manager'};
+  // 按团队筛选
+  const showMs = _filterTeamId ? members.filter(m=>m.teamId===_filterTeamId) : members;
+  const teamOf = m => { const t=teams.find(t=>t.id===m.teamId); return t?` · <span style="color:var(--purple);font-size:11px">${esc(t.name)}</span>`:''; };
+
+  const renderMemberSection = m => {
     const mHires = hires.filter(h=>h.memberId===m.id);
     const totalScore = mHires.reduce((s,h)=>s+hireScore(h),0);
+    const collapsed = _collapsedMembers.has(m.id);
     return `
     <div class="hire-section">
       <div class="hire-section-hdr">
-        <span class="hire-section-name">${esc(m.name)}</span>
-        <span style="font-size:11px;color:var(--mt)">${teamOf(m)}</span>
-        <span class="hire-score-tag">本月 ${Math.round(totalScore*100)/100} 分 · ${mHires.length} 单</span>
+        <div class="hire-hdr-toggle" onclick="toggleMemberHires(${m.id})">
+          <span class="hire-section-name">${esc(m.name)}</span>
+          <span class="member-role-badge ${roleClass[m.role]}" style="font-size:10px;padding:1px 7px">${roleLabel[m.role]}</span>
+          ${teamOf(m)}
+          <span class="hire-score-tag">本月 ${Math.round(totalScore*100)/100} 分 · ${mHires.length} 单</span>
+          <span class="hire-sec-arr" style="${collapsed?'transform:rotate(-90deg)':''}">${collapsed?'▶':'▼'}</span>
+        </div>
       </div>
+      <div class="hire-sec-body ${collapsed?'collapsed':''}">
       ${mHires.length>0 ? `
       <div class="hire-tbl-wrap">
       <table class="hire-tbl">
@@ -957,36 +1033,65 @@ function renderHireSections(){
       <div class="hire-add-row">
         <button class="add-btn" onclick="addHire(${m.id})" style="padding:5px 14px;font-size:11px">＋ 添加入职记录</button>
       </div>
+      </div>
     </div>`;
-  }).join('');
+  };
+
+  // 按团队分组渲染
+  if(!teams.length || !showMs.some(m=>m.teamId)){
+    el.innerHTML = showMs.map(renderMemberSection).join(''); return;
+  }
+  let html='';
+  const renderedIds=new Set();
+  teams.forEach(t=>{
+    const tm=showMs.filter(m=>m.teamId===t.id);
+    if(!tm.length) return;
+    html+=`<div style="margin-bottom:16px">
+      <div class="team-group-hdr" style="margin-bottom:6px">
+        <span class="team-group-name">${esc(t.name)}</span>
+        <span class="team-group-count">${tm.length}人</span>
+      </div>
+      ${tm.map(m=>{ renderedIds.add(m.id); return renderMemberSection(m); }).join('')}
+    </div>`;
+  });
+  const noTeam=showMs.filter(m=>!renderedIds.has(m.id));
+  if(noTeam.length) html+=noTeam.map(renderMemberSection).join('');
+  el.innerHTML=html;
 }
+function toggleMemberHires(memberId){
+  if(_collapsedMembers.has(memberId)) _collapsedMembers.delete(memberId);
+  else _collapsedMembers.add(memberId);
+  renderHireSections();
+}
+
 
 function renderResults(){
   const results = calcResults();
-  const totalPayout = members.reduce((s,m)=>s+(results[m.id]?.totalPayout||0),0);
-  const totalBonus  = members.reduce((s,m)=>s+(results[m.id]?.personalBonus||0)+(results[m.id]?.teamBonus||0),0);
-  const totalScore  = members.reduce((s,m)=>s+(results[m.id]?.totalScore||0),0);
+  // 按筛选过滤
+  const showMs = filteredMembers().slice().sort((a,b)=>(results[b.id]?.totalScore||0)-(results[a.id]?.totalScore||0));
+  const totalPayout = showMs.reduce((s,m)=>s+(results[m.id]?.totalPayout||0),0);
+  const totalBonus  = showMs.reduce((s,m)=>s+(results[m.id]?.personalBonus||0)+(results[m.id]?.teamBonus||0),0);
+  const totalScore  = showMs.reduce((s,m)=>s+(results[m.id]?.totalScore||0),0);
 
-  // KPI
   document.getElementById('result-kpi').innerHTML = `
-    <div class="kpi"><div class="kpi-val" style="color:var(--blue)">${members.length}</div><div class="kpi-lbl">团队人数</div></div>
-    <div class="kpi"><div class="kpi-val" style="color:var(--green)">${Math.round(totalScore*10)/10}</div><div class="kpi-lbl">团队总分</div></div>
+    <div class="kpi"><div class="kpi-val" style="color:var(--blue)">${showMs.length}</div><div class="kpi-lbl">显示人数</div></div>
+    <div class="kpi"><div class="kpi-val" style="color:var(--green)">${Math.round(totalScore*10)/10}</div><div class="kpi-lbl">总分</div></div>
     <div class="kpi"><div class="kpi-val" style="color:var(--orange)">${Math.round(totalBonus).toLocaleString()}</div><div class="kpi-lbl">提成合计</div></div>
     <div class="kpi"><div class="kpi-val" style="color:var(--yellow)">${Math.round(totalPayout).toLocaleString()}</div><div class="kpi-lbl">应发总额</div></div>
   `;
 
-  // 表格
-  const roleLabel = {specialist:'专员',leader:'组长',manager:'主管'};
-  const tbody = document.getElementById('result-body');
-  if(!members.length){ tbody.innerHTML='<tr><td colspan="11" class="empty">请先添加团队成员</td></tr>'; return; }
-  tbody.innerHTML = members.map(m=>{
-    const r = results[m.id];
-    const tierHtml = r.specTier==='none'
-      ? '<span class="tier-badge tier-none">未达档</span>'
-      : `<span class="tier-badge tier-${r.specTier}">${r.specTier}档 (均${r.specAvg.toFixed(1)}分)</span>`;
-    const lvClass = 'level-'+r.effectiveLevel.name;
-    const team = teams.find(t=>t.id===m.teamId);
-    return `<tr class="clickable-row" onclick="showDetailModal(${m.id})" title="点击查看 ${esc(m.name)} 的提成明细">
+  const roleLabel={specialist:'专员',leader:'组长',manager:'主管'};
+  const tbody=document.getElementById('result-body');
+  if(!showMs.length){ tbody.innerHTML=`<tr><td colspan="11" class="empty">${members.length?'无符合筛选条件的成员':'请先添加团队成员'}</td></tr>`; return; }
+
+  const rowOf=m=>{
+    const r=results[m.id];
+    const tierHtml=r.specTier==='none'
+      ?'<span class="tier-badge tier-none">未达档</span>'
+      :`<span class="tier-badge tier-${r.specTier}">${r.specTier}档 (均${r.specAvg.toFixed(1)}分)</span>`;
+    const lvClass='level-'+r.effectiveLevel.name;
+    const team=teams.find(t=>t.id===m.teamId);
+    return `<tr class="clickable-row" onclick="showDetailModal(${m.id})" title="点击查看明细">
       <td>${esc(m.name)} <span class="click-hint">· 明细</span></td>
       <td style="text-align:center;font-size:11px;color:var(--purple)">${team?esc(team.name):'—'}</td>
       <td style="text-align:center">${roleLabel[m.role]}</td>
@@ -999,7 +1104,25 @@ function renderResults(){
       <td style="text-align:center;color:var(--orange)">${r.adjAmt?'+'+r.adjAmt.toLocaleString():'—'}</td>
       <td><span class="payout-total">${r.totalPayout.toLocaleString()}</span></td>
     </tr>`;
-  }).join('');
+  };
+
+  // 按团队分组（仅角色筛选为"全部"时分组）
+  if(_filterRole==='all' && teams.length && showMs.some(m=>m.teamId)){
+    let html='', renderedIds=new Set();
+    // 先按团队分组、组内按分值排序
+    teams.forEach(t=>{
+      const tm=showMs.filter(m=>m.teamId===t.id);
+      if(!tm.length) return;
+      html+=`<tr class="result-group-hdr"><td colspan="11">📁 ${esc(t.name)}（${tm.length}人）</td></tr>`;
+      html+=tm.map(m=>{ renderedIds.add(m.id); return rowOf(m); }).join('');
+    });
+    // 无团队的
+    showMs.filter(m=>!renderedIds.has(m.id)).forEach(m=>{ html+=rowOf(m); });
+    tbody.innerHTML=html;
+  } else {
+    tbody.innerHTML=showMs.map(rowOf).join('');
+  }
+  renderOverview();
 }
 
 function renderAdj(){
@@ -1018,6 +1141,107 @@ function renderAdj(){
       </div>
     </div>`;
   }).join('');
+}
+
+// ── 筛选栏 ────────────────────────────────────────────────────────
+function renderFilterBar(){
+  const sel=document.getElementById('filter-team-sel');
+  if(!sel) return;
+  sel.innerHTML='<option value="">全部团队</option>'+
+    teams.map(t=>`<option value="${t.id}" ${_filterTeamId===t.id?'selected':''}>${esc(t.name)}</option>`).join('');
+  // 角色按钮高亮
+  const map={all:'ra',manager:'rm',leader:'rl',specialist:'rs'};
+  document.querySelectorAll('.rbtn').forEach(b=>{
+    b.className='rbtn'; const r=b.getAttribute('onclick').match(/'(\w+)'/)?.[1];
+    if(r===_filterRole) b.className='rbtn '+map[r];
+  });
+}
+function setFilterTeam(id){
+  _filterTeamId=id||null;
+  renderFilterBar(); renderHireSections(); renderResults(); renderOverview();
+}
+function setFilterRole(role){
+  _filterRole=role;
+  renderFilterBar(); renderResults();
+}
+function filteredMembers(){
+  let ms=members;
+  if(_filterTeamId) ms=ms.filter(m=>m.teamId===_filterTeamId);
+  if(_filterRole!=='all') ms=ms.filter(m=>m.role===_filterRole);
+  return ms;
+}
+
+// ── 总览 Dashboard ────────────────────────────────────────────────
+function renderOverview(){
+  const el=document.getElementById('ov-content'); if(!el) return;
+  if(!members.length){ el.innerHTML='<div class="empty">暂无数据</div>'; return; }
+  const results=calcResults();
+  const activeMs=_filterTeamId?members.filter(m=>m.teamId===_filterTeamId):members;
+  const activeHires=hires.filter(h=>activeMs.some(m=>m.id===h.memberId));
+
+  // 费用统计
+  const totalPayout=activeMs.reduce((s,m)=>s+(results[m.id]?.totalPayout||0),0);
+  const totalBonus =activeMs.reduce((s,m)=>s+(results[m.id]?.personalBonus||0)+(results[m.id]?.teamBonus||0),0);
+
+  // 入职统计
+  const hireCount   =activeHires.filter(h=>!h.secondHire).length;
+  const leftCount   =activeHires.filter(h=>h.left7||h.left1month).length;
+  const onboardCount=hireCount-leftCount;
+  const secondCount =activeHires.filter(h=>h.secondHire).length;
+
+  // 团队排名（按专员人均分）
+  const teamRanks=teams.map(t=>{
+    const specs=members.filter(m=>m.teamId===t.id&&m.role==='specialist');
+    const valid=specs.filter(m=>(results[m.id]?.totalScore||0)>0);
+    const avg=valid.length?valid.reduce((s,m)=>s+(results[m.id]?.totalScore||0),0)/valid.length:0;
+    const totalScore=specs.reduce((s,m)=>s+(results[m.id]?.totalScore||0),0);
+    return {id:t.id,name:t.name,avg,totalScore,memberCount:specs.length};
+  }).filter(t=>t.memberCount>0).sort((a,b)=>b.avg-a.avg);
+
+  // 最优团队
+  const bestTeam=teamRanks[0];
+
+  const rankHtml=teamRanks.length?teamRanks.map((t,i)=>{
+    const medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':'';
+    const color=i===0?'var(--green)':i===1?'var(--blue)':'var(--mt)';
+    return `<div class="rank-item">
+      <span class="rank-no">${medal||('#'+(i+1))}</span>
+      <span class="rank-nm">${esc(t.name)}</span>
+      <span class="rank-sc" style="color:${color}">${t.avg.toFixed(1)}均分</span>
+      <span style="font-size:11px;color:var(--mt)">${t.totalScore.toFixed(1)}总分</span>
+    </div>`;
+  }).join(''):'<div style="font-size:11px;color:var(--mt)">暂无团队数据</div>';
+
+  el.innerHTML=`
+    <div class="ov-grid">
+      <div class="ov-card">
+        <div class="ov-title">应发总额</div>
+        <div class="ov-val" style="color:var(--green)">${Math.round(totalPayout).toLocaleString()}</div>
+        <div class="ov-sub">提成合计 ${Math.round(totalBonus).toLocaleString()} 元</div>
+      </div>
+      <div class="ov-card">
+        <div class="ov-title">入职总人数</div>
+        <div class="ov-val" style="color:var(--blue)">${hireCount}</div>
+        <div class="ov-sub">在职 ${onboardCount} · 离职 ${leftCount}</div>
+      </div>
+      <div class="ov-card">
+        <div class="ov-title">人员留存率</div>
+        <div class="ov-val" style="color:${hireCount?((onboardCount/hireCount)>=0.8?'var(--green)':'var(--orange)'):'var(--mt)'}">${hireCount?Math.round(onboardCount/hireCount*100)+'%':'—'}</div>
+        <div class="ov-sub">二次入职 ${secondCount} 人（无效）</div>
+      </div>
+      <div class="ov-card">
+        <div class="ov-title">本月最优团队</div>
+        <div class="ov-val" style="color:var(--yellow);font-size:16px;line-height:1.4">${bestTeam?esc(bestTeam.name):'—'}</div>
+        <div class="ov-sub">${bestTeam?`专员人均 ${bestTeam.avg.toFixed(1)} 分`:'暂无数据'}</div>
+      </div>
+      <div class="ov-card">
+        <div class="ov-title">团队人数</div>
+        <div class="ov-val" style="color:var(--purple)">${activeMs.length}</div>
+        <div class="ov-sub">专员 ${activeMs.filter(m=>m.role==='specialist').length} · 组长 ${activeMs.filter(m=>m.role==='leader').length} · 主管 ${activeMs.filter(m=>m.role==='manager').length}</div>
+      </div>
+    </div>
+    ${teamRanks.length>1?`<div style="font-size:11px;font-weight:700;color:var(--mt);margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em">团队排名（按专员人均分）</div>
+    <div class="rank-list">${rankHtml}</div>`:''}`;
 }
 
 // ── 团队操作 ─────────────────────────────────────────────────────
@@ -1136,17 +1360,45 @@ function delHire(id){
   renderHireSections(); renderResults(); autoSave();
 }
 
-// ── 自动保存 ─────────────────────────────────────────────────────
+// ── 月份切换 ──────────────────────────────────────────────────────
+function onMonthChange(newMonth){
+  if(_currentMonth && _currentMonth !== newMonth) _saveMonthNow(_currentMonth);
+  _currentMonth = newMonth;
+  _loadMonth(newMonth);
+  autoSave();
+}
+function _monthKey(m){ return 'zp_draft_'+(m||'nomonth'); }
+function _saveMonthNow(month){
+  const state={month, team:v('f-team'), teams, members, hires, adjs, rates, _uid, _savedAt:Date.now()};
+  try{ localStorage.setItem(_monthKey(month), JSON.stringify(state)); }catch(e){}
+}
+function _loadMonth(month){
+  try{
+    const s=JSON.parse(localStorage.getItem(_monthKey(month))||'{}');
+    if(s.members){
+      set('f-team',s.team);
+      teams=s.teams||[]; members=s.members||[]; hires=s.hires||[]; adjs=s.adjs||{};
+      if(s.rates) Object.assign(rates,s.rates);
+      _uid=s._uid||1;
+    } else { teams=[]; members=[]; hires=[]; adjs={}; _uid=1; }
+  }catch(e){ teams=[]; members=[]; hires=[]; adjs={}; _uid=1; }
+  _collapsedMembers.clear();
+  renderAll(); renderTeamList(); renderRates(); renderFilterBar(); renderOverview();
+}
+
+// ── 自动保存 ──────────────────────────────────────────────────────
 let _saveTimer;
 function autoSave(){
   clearTimeout(_saveTimer);
   _saveTimer = setTimeout(()=>{
+    const month=v('f-month');
     const state = {
-      month:v('f-month'), team:v('f-team'),
+      month, team:v('f-team'),
       teams, members, hires, adjs, rates, _uid,
       _savedAt: Date.now()
     };
     localStorage.setItem('zp_commission_draft', JSON.stringify(state));
+    if(month) try{ localStorage.setItem(_monthKey(month), JSON.stringify(state)); }catch(e){}
   }, 600);
   scheduleSyncPush();
 }
@@ -1156,13 +1408,14 @@ function loadSaved(){
     const s = JSON.parse(localStorage.getItem('zp_commission_draft')||'{}');
     if(!s.members) return;
     set('f-month', s.month); set('f-team', s.team);
+    _currentMonth = s.month||'';
     teams   = s.teams||[];
     members = s.members||[];
     hires   = s.hires||[];
     adjs    = s.adjs||{};
     if(s.rates) Object.assign(rates, s.rates);
     _uid    = s._uid||1;
-    renderAll(); renderTeamList(); renderRates();
+    renderAll(); renderTeamList(); renderRates(); renderFilterBar(); renderOverview();
     toast('已恢复上次草稿','info');
   }catch(e){}
 }
@@ -2147,12 +2400,13 @@ function toggleSec(bodyId, arrowId){
 
 // ── 初始化 ─────────────────────────────────────────────────────
 window.onload = function(){
-  const now=new Date();
-  set('f-month',`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`);
+  const nowM=new Date();
+  const initMonth=`${nowM.getFullYear()}-${String(nowM.getMonth()+1).padStart(2,'0')}`;
+  set('f-month', initMonth);
+  _currentMonth = initMonth;
   loadSaved();
   if(!members.length) renderAll();
-  renderTeamList();
-  renderRates();
+  renderTeamList(); renderRates(); renderFilterBar(); renderOverview();
   initSyncUI();
 };
 </script>
