@@ -520,7 +520,8 @@ button{cursor:pointer;border:none;font-family:inherit;transition:all .15s}
     <!-- 导入历史备份 -->
     <div id="mpanel-history" class="modal-panel" style="display:none">
       <div class="modal-info">
-        选择之前通过「<b>导出 JSON</b>」保存的备份文件，可仅恢复成员名单（适合新月份），或完整恢复全部数据
+        支持两种格式：<b>JSON</b>（之前「导出 JSON」的备份）或 <b>Excel</b>（之前「导出 Excel」的文件）。
+        可仅恢复成员名单（适合新月份），或完整恢复全部数据（含入职记录）
       </div>
       <div class="file-drop" id="file-drop-zone"
            onclick="document.getElementById('json-file-inp').click()"
@@ -528,9 +529,9 @@ button{cursor:pointer;border:none;font-family:inherit;transition:all .15s}
            ondragleave="this.classList.remove('drag-over')"
            ondrop="event.preventDefault();this.classList.remove('drag-over');onJsonFileDrop(event)">
         <div style="font-size:32px;margin-bottom:10px">📂</div>
-        <div style="font-size:13px;font-weight:600;color:var(--tx)">点击选择 JSON 文件</div>
-        <div style="font-size:11px;color:var(--mt);margin-top:4px">或将 .json 文件拖放到此处</div>
-        <input type="file" id="json-file-inp" accept=".json" style="display:none" onchange="onJsonFileSelect(event)">
+        <div style="font-size:13px;font-weight:600;color:var(--tx)">点击选择文件</div>
+        <div style="font-size:11px;color:var(--mt);margin-top:4px">支持 .json · .xlsx · .xls，或将文件拖放到此处</div>
+        <input type="file" id="json-file-inp" accept=".json,.xlsx,.xls" style="display:none" onchange="onJsonFileSelect(event)">
       </div>
       <div id="json-preview-area" style="display:none;margin-top:14px">
         <div class="json-ok" id="json-preview-info"></div>
@@ -1183,6 +1184,96 @@ function doBatchImport(){
   toast(msg,'ok');
 }
 
+async function _parseExcelImport(buffer, filename){
+  try{
+    const wb=new ExcelJS.Workbook();
+    await wb.xlsx.load(buffer);
+
+    const roleMap={'招聘专员':'specialist','专员':'specialist',
+                   '招聘组长':'leader','组长':'leader',
+                   '招聘主管':'manager','主管':'manager'};
+
+    // ── 读取成员（优先从"提成汇总"，找"姓名"列）──
+    const ws1=wb.getWorksheet('提成汇总')||wb.worksheets[0];
+    if(!ws1) throw new Error('找不到工作表');
+
+    let hdrRow=-1, nameCol=-1, roleCol=-1;
+    ws1.eachRow((row,rn)=>{
+      if(hdrRow>0) return;
+      row.eachCell((cell,cn)=>{
+        const v=String(cell.value||'').trim();
+        if(v==='姓名'){ hdrRow=rn; nameCol=cn; }
+      });
+    });
+    if(hdrRow<0) throw new Error('找不到"姓名"列，请确认是本计算器导出的 Excel');
+
+    // 找角色列
+    ws1.getRow(hdrRow).eachCell((cell,cn)=>{
+      if(String(cell.value||'').trim()==='角色') roleCol=cn;
+    });
+
+    const importMembers=[];
+    ws1.eachRow((row,rn)=>{
+      if(rn<=hdrRow) return;
+      const name=String(row.getCell(nameCol).value||'').trim();
+      if(!name||name==='合计') return;
+      const roleText=roleCol>0?String(row.getCell(roleCol).value||'').trim():'';
+      importMembers.push({name, role:roleMap[roleText]||'specialist'});
+    });
+    if(!importMembers.length) throw new Error('未读取到有效成员数据');
+
+    // ── 读取入职记录（从"业绩明细"）──
+    const ws2=wb.getWorksheet('业绩明细')||(wb.worksheets.length>1?wb.worksheets[1]:null);
+    const importHires=[];
+    if(ws2){
+      let hdr2=-1, cName=-1,cCand=-1,cSalary=-1,cOnsite=-1,cLeft7=-1,cLeft1m=-1,cSecond=-1;
+      ws2.eachRow((row,rn)=>{
+        if(hdr2>0) return;
+        row.eachCell((cell,cn)=>{
+          const v=String(cell.value||'').trim();
+          if(v==='姓名') { hdr2=rn; cName=cn; }
+          if(v==='候选人') cCand=cn;
+          if(v==='转正薪资') cSalary=cn;
+          if(v==='坐班') cOnsite=cn;
+          if(v.includes('7日')) cLeft7=cn;
+          if(v.includes('月内')) cLeft1m=cn;
+          if(v==='二次') cSecond=cn;
+        });
+      });
+      if(hdr2>0){
+        let curName='';
+        ws2.eachRow((row,rn)=>{
+          if(rn<=hdr2) return;
+          const nameVal=String(row.getCell(cName).value||'').trim();
+          if(nameVal) curName=nameVal;
+          if(!curName) return;
+          const candidate=cCand>0?String(row.getCell(cCand).value||'').trim():'';
+          const salary=cSalary>0?(+row.getCell(cSalary).value||0):0;
+          if(candidate==='（本月无业绩）'||(!candidate&&!salary)) return;
+          importHires.push({
+            memberName:curName, candidate, salary,
+            isOnsite: cOnsite>0&&String(row.getCell(cOnsite).value||'').trim()==='是',
+            left7:    cLeft7>0 &&String(row.getCell(cLeft7).value||'').trim()==='是',
+            left1month:cLeft1m>0&&String(row.getCell(cLeft1m).value||'').trim()==='是',
+            secondHire:cSecond>0&&String(row.getCell(cSecond).value||'').trim()==='是',
+          });
+        });
+      }
+    }
+
+    _importJson={_fromExcel:true, _members:importMembers, _hiresByName:importHires,
+                 members:importMembers.map(m=>({id:0,name:m.name,role:m.role}))};
+
+    const info=[
+      `<b>文件：</b>${esc(filename)}`,
+      `<b>成员：</b>${importMembers.length} 位`,
+      importHires.length?`<b>入职记录：</b>${importHires.length} 条`:'',
+    ].filter(Boolean).join('　　');
+    document.getElementById('json-preview-info').innerHTML=info;
+    document.getElementById('json-preview-area').style.display='block';
+  }catch(e){ toast('Excel解析失败：'+e.message,'err'); }
+}
+
 function _parseImportData(text, filename){
   try{
     const data=JSON.parse(text);
@@ -1199,17 +1290,28 @@ function _parseImportData(text, filename){
     document.getElementById('json-preview-area').style.display='block';
   }catch(e){ toast('文件格式错误：'+e.message,'err'); }
 }
+function _isExcel(filename){ return /\.(xlsx|xls)$/i.test(filename); }
 function onJsonFileSelect(e){
   const file=e.target.files[0]; if(!file) return;
   const r=new FileReader();
-  r.onload=ev=>_parseImportData(ev.target.result,file.name);
-  r.readAsText(file,'utf-8');
+  if(_isExcel(file.name)){
+    r.onload=ev=>_parseExcelImport(ev.target.result,file.name);
+    r.readAsArrayBuffer(file);
+  } else {
+    r.onload=ev=>_parseImportData(ev.target.result,file.name);
+    r.readAsText(file,'utf-8');
+  }
 }
 function onJsonFileDrop(e){
   const file=e.dataTransfer.files[0]; if(!file) return;
   const r=new FileReader();
-  r.onload=ev=>_parseImportData(ev.target.result,file.name);
-  r.readAsText(file,'utf-8');
+  if(_isExcel(file.name)){
+    r.onload=ev=>_parseExcelImport(ev.target.result,file.name);
+    r.readAsArrayBuffer(file);
+  } else {
+    r.onload=ev=>_parseImportData(ev.target.result,file.name);
+    r.readAsText(file,'utf-8');
+  }
 }
 
 function doImportMembersOnly(){
@@ -1227,15 +1329,27 @@ function doImportFull(){
   if(!_importJson) return;
   if(!confirm('确认完整恢复？当前全部数据将被覆盖。')) return;
   const d=_importJson;
-  if(d.month) set('f-month',d.month);
-  if(d.team)  set('f-team',d.team);
-  members=d.members||[];
-  hires  =d.hires||[];
-  adjs   =d.adjs||{};
-  const allIds=[...members.map(m=>m.id),...hires.map(h=>h.id)].filter(Number.isFinite);
-  _uid=allIds.length?Math.max(...allIds)+1:1;
-  renderAll(); autoSave(); closeImportModal();
-  toast(`已恢复：${members.length} 位成员，${hires.length} 条记录`,'ok');
+  if(d._fromExcel){
+    members=[]; hires=[]; adjs={};
+    (d._members||[]).forEach(m=>members.push({id:uid(),name:m.name,role:m.role||'specialist'}));
+    (d._hiresByName||[]).forEach(h=>{
+      const m=members.find(x=>x.name===h.memberName); if(!m) return;
+      hires.push({id:uid(),memberId:m.id,candidate:h.candidate||'',salary:h.salary||0,
+        isOnsite:!!h.isOnsite,left7:!!h.left7,left1month:!!h.left1month,secondHire:!!h.secondHire});
+    });
+    renderAll(); autoSave(); closeImportModal();
+    toast(`已恢复：${members.length} 位成员，${hires.length} 条记录`,'ok');
+  } else {
+    if(d.month) set('f-month',d.month);
+    if(d.team)  set('f-team',d.team);
+    members=d.members||[];
+    hires  =d.hires||[];
+    adjs   =d.adjs||{};
+    const allIds=[...members.map(m=>m.id),...hires.map(h=>h.id)].filter(Number.isFinite);
+    _uid=allIds.length?Math.max(...allIds)+1:1;
+    renderAll(); autoSave(); closeImportModal();
+    toast(`已恢复：${members.length} 位成员，${hires.length} 条记录`,'ok');
+  }
 }
 
 // ── 导出 JSON 备份 ────────────────────────────────────────────
