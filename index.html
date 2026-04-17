@@ -1423,8 +1423,8 @@ function renderOverview(){
         <div class="ov-sub">专员 ${activeMs.filter(m=>m.role==='specialist').length} · 组长 ${activeMs.filter(m=>m.role==='leader').length} · 主管 ${activeMs.filter(m=>m.role==='manager').length}</div>
       </div>
     </div>
-    ${indivHtml?`<div style="font-size:11px;font-weight:700;color:var(--mt);margin:16px 0 8px;text-transform:uppercase;letter-spacing:.06em">专员个人最高 / 最低</div>${indivHtml}`:''}
-    ${rankHtml?`<div style="font-size:11px;font-weight:700;color:var(--mt);margin:16px 0 8px;text-transform:uppercase;letter-spacing:.06em">团队排名（按专员人均分）</div><div class="rank-list">${rankHtml}</div>`:''}`;
+    ${rankHtml?`<div style="font-size:11px;font-weight:700;color:var(--mt);margin:16px 0 8px;text-transform:uppercase;letter-spacing:.06em">团队排名（按专员人均分）</div><div class="rank-list">${rankHtml}</div>`:''}
+    ${indivHtml?`<div style="font-size:11px;font-weight:700;color:var(--mt);margin:16px 0 8px;text-transform:uppercase;letter-spacing:.06em">专员个人最高 / 最低</div>${indivHtml}`:''}`;
 }
 
 // ── 团队操作 ─────────────────────────────────────────────────────
@@ -1464,11 +1464,9 @@ function renderTeamList(){
 function renderRates(){
   const el = document.getElementById('rate-grid');
   if(!el) return;
-  const labels={USD:'美元',GBP:'英镑',TWD:'台币',KRW:'韩元',AED:'迪拉姆',JPY:'日元'};
   el.innerHTML = Object.entries(rates).map(([curr,rate])=>`
     <div class="rate-item">
       <span class="rate-label">${curr}</span>
-      <span style="font-size:11px;color:var(--mt)">（${labels[curr]||curr}）</span>
       <input class="rate-inp" type="number" step="0.0001" min="0" value="${rate}"
         oninput="rates['${curr}']=parseFloat(this.value)||0;renderResults();autoSave()"
         onblur="renderHireSections();renderResults()">
