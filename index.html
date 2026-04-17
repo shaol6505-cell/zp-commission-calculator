@@ -722,7 +722,7 @@ let _uid = 1;
 
 let _filterTeamId = null;   // null = 全部
 let _filterRole   = 'all';  // all | manager | leader | specialist
-let _collapsedMembers = new Set(); // memberId set
+let _expandedMembers = new Set(); // memberId set — 在集合里 = 展开，默认收起
 let _currentMonth = '';
 
 // 将任意货币薪资折算为人民币
@@ -957,7 +957,7 @@ function renderHireSections(){
   const renderMemberSection = m => {
     const mHires = hires.filter(h=>h.memberId===m.id);
     const totalScore = mHires.reduce((s,h)=>s+hireScore(h),0);
-    const collapsed = _collapsedMembers.has(m.id);
+    const collapsed = !_expandedMembers.has(m.id);
     return `
     <div class="hire-section">
       <div class="hire-section-hdr">
@@ -1059,8 +1059,8 @@ function renderHireSections(){
   el.innerHTML=html;
 }
 function toggleMemberHires(memberId){
-  if(_collapsedMembers.has(memberId)) _collapsedMembers.delete(memberId);
-  else _collapsedMembers.add(memberId);
+  if(_expandedMembers.has(memberId)) _expandedMembers.delete(memberId);
+  else _expandedMembers.add(memberId);
   renderHireSections();
 }
 
