@@ -257,6 +257,23 @@ button{cursor:pointer;border:none;font-family:inherit;transition:all .15s}
 .sync-btn{background:rgba(255,255,255,0.06);border:1px solid var(--bd);border-radius:7px;color:var(--mt);padding:5px 9px;font-size:12px;cursor:pointer;transition:all .15s;white-space:nowrap}
 .sync-btn:hover{background:rgba(52,199,138,0.1);color:var(--green);border-color:rgba(52,199,138,0.3)}
 .sync-status{font-size:11px;white-space:nowrap;min-width:52px}
+
+/* Page tabs */
+.page-tabs{display:flex;gap:5px;margin-bottom:22px;background:var(--p1);border:1px solid var(--bd);border-radius:13px;padding:5px}
+.ptab{flex:1;background:none;border:none;color:var(--mt);padding:11px 20px;font-size:14px;font-weight:700;border-radius:9px;cursor:pointer;transition:all .2s;font-family:inherit;letter-spacing:.01em}
+.ptab:hover{background:rgba(255,255,255,0.05);color:var(--tx)}
+.ptab-active{background:var(--blue)!important;color:#fff!important;box-shadow:0 2px 10px rgba(79,142,247,0.35)}
+
+/* Warning card */
+.warn-card{background:rgba(245,88,88,0.07);border:1px solid rgba(245,88,88,0.25);border-radius:10px;padding:14px 18px;margin-bottom:18px}
+.warn-title{font-size:12px;font-weight:800;color:var(--red);margin-bottom:10px}
+.warn-chip{background:rgba(245,88,88,0.1);border:1px solid rgba(245,88,88,0.22);border-radius:8px;padding:8px 12px;display:inline-block;margin:3px}
+
+/* Indiv stats */
+.indiv-card{background:var(--p2);border:1px solid var(--bd);border-radius:9px;padding:10px 14px;margin-bottom:8px}
+.indiv-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+.indiv-item{flex:1;min-width:130px}
+.indiv-lbl{font-size:10px;color:var(--mt);margin-bottom:3px}
 </style>
 </head>
 <body>
@@ -286,6 +303,46 @@ button{cursor:pointer;border:none;font-family:inherit;transition:all .15s}
 </div>
 
 <div class="main">
+
+<!-- 页面切换 -->
+<div class="page-tabs">
+  <button class="ptab ptab-active" id="ptab-overview" onclick="setPage('overview')">📊 总览</button>
+  <button class="ptab" id="ptab-calc" onclick="setPage('calc')">🧮 计算器</button>
+</div>
+
+<!-- ══ 总览页 ══════════════════════════════════════════════════ -->
+<div id="page-overview">
+
+<!-- 汇率设置 -->
+<div class="card">
+  <div class="sec-toggle" onclick="toggleSec('rates-body','rates-arr')">
+    <span class="sec-toggle-title">💱 多货币汇率设置（统一折算人民币）</span>
+    <span id="rates-arr" style="color:var(--yellow);font-size:13px">▶</span>
+  </div>
+  <div id="rates-body" class="sec-body">
+    <div style="font-size:11px;color:var(--mt);margin-bottom:6px">所有薪资按以下汇率折算为人民币后计算分值，表格只显示人民币金额。1 CNY = 1（固定）</div>
+    <div class="rate-grid" id="rate-grid"></div>
+  </div>
+</div>
+
+<!-- 总览 Dashboard -->
+<div class="card">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+    <div class="card-title" style="margin-bottom:0">📊 <span>总览 Dashboard</span></div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <span style="font-size:11px;color:var(--mt)">筛选团队：</span>
+      <select class="sel-sm" id="ov-filter-team" onchange="setFilterTeam(+this.value||null)" style="width:150px">
+        <option value="">全部团队</option>
+      </select>
+    </div>
+  </div>
+  <div id="ov-content"><div class="empty">暂无数据</div></div>
+</div>
+
+</div><!-- /#page-overview -->
+
+<!-- ══ 计算器页 ══════════════════════════════════════════════════ -->
+<div id="page-calc" style="display:none">
 
 <!-- 使用说明 -->
 <div class="card">
@@ -511,18 +568,6 @@ button{cursor:pointer;border:none;font-family:inherit;transition:all .15s}
   </div>
 </div>
 
-<!-- 汇率设置 -->
-<div class="card">
-  <div class="sec-toggle" onclick="toggleSec('rates-body','rates-arr')">
-    <span class="sec-toggle-title">💱 多货币汇率设置（统一折算人民币）</span>
-    <span id="rates-arr" style="color:var(--yellow);font-size:13px">▶</span>
-  </div>
-  <div id="rates-body" class="sec-body">
-    <div style="font-size:11px;color:var(--mt);margin-bottom:6px">所有薪资按以下汇率折算为人民币后计算分值，表格只显示人民币金额。1 CNY = 1（固定）</div>
-    <div class="rate-grid" id="rate-grid"></div>
-  </div>
-</div>
-
 <!-- ① 团队成员 -->
 <div class="card">
   <div class="card-title">① <span>团队成员</span>
@@ -551,17 +596,6 @@ button{cursor:pointer;border:none;font-family:inherit;transition:all .15s}
     </select>
     <button class="add-btn" onclick="addMember()">＋ 添加成员</button>
     <button class="add-btn" style="background:rgba(52,199,138,0.1);color:var(--green);border-color:rgba(52,199,138,0.25)" onclick="openImportModal()">📋 批量导入 / 历史数据</button>
-  </div>
-</div>
-
-<!-- 📊 总览 -->
-<div class="card">
-  <div class="sec-toggle" onclick="toggleSec('ov-body','ov-arr')">
-    <span class="sec-toggle-title">📊 总览 Dashboard</span>
-    <span id="ov-arr" style="color:var(--yellow);font-size:13px">▶</span>
-  </div>
-  <div id="ov-body" class="sec-body">
-    <div id="ov-content"><div class="empty">暂无数据</div></div>
   </div>
 </div>
 
@@ -636,7 +670,8 @@ button{cursor:pointer;border:none;font-family:inherit;transition:all .15s}
   <button style="background:rgba(245,88,88,0.1);color:var(--red);border:1px solid rgba(245,88,88,0.2);border-radius:9px;padding:11px 20px;font-size:13px;font-weight:600" onclick="clearAll()">清空重填</button>
 </div>
 
-</div>
+</div><!-- /#page-calc -->
+</div><!-- /.main -->
 <!-- 导入数据模态框 -->
 <div id="import-modal" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeImportModal()">
   <div class="modal">
@@ -1201,9 +1236,12 @@ function addAdjEntry(){
 // ── 筛选栏 ────────────────────────────────────────────────────────
 function renderFilterBar(){
   const sel=document.getElementById('filter-team-sel');
-  if(!sel) return;
-  sel.innerHTML='<option value="">全部团队</option>'+
+  const ovSel=document.getElementById('ov-filter-team');
+  const opts='<option value="">全部团队</option>'+
     teams.map(t=>`<option value="${t.id}" ${_filterTeamId===t.id?'selected':''}>${esc(t.name)}</option>`).join('');
+  if(sel) sel.innerHTML=opts;
+  if(ovSel) ovSel.innerHTML=opts;
+  if(!sel) return;
   // 角色按钮高亮
   const map={all:'ra',manager:'rm',leader:'rl',specialist:'rs'};
   document.querySelectorAll('.rbtn').forEach(b=>{
@@ -1226,37 +1264,131 @@ function filteredMembers(){
   return ms;
 }
 
+// ── 页面切换 ──────────────────────────────────────────────────────
+let _currentPage = 'overview';
+function setPage(p){
+  _currentPage = p;
+  document.getElementById('page-overview').style.display = p==='overview'?'':'none';
+  document.getElementById('page-calc').style.display     = p==='calc'?'':'none';
+  document.getElementById('ptab-overview').classList.toggle('ptab-active', p==='overview');
+  document.getElementById('ptab-calc').classList.toggle('ptab-active',     p==='calc');
+  if(p==='overview') renderOverview();
+}
+
+function getPrevMonth(month){
+  if(!month) return null;
+  const [y,m]=month.split('-').map(Number);
+  if(isNaN(y)||isNaN(m)) return null;
+  return m===1?`${y-1}-12`:`${y}-${String(m-1).padStart(2,'0')}`;
+}
+
+function getWarningMembers(){
+  const curMonth=v('f-month')||_currentMonth;
+  const prevMonth=getPrevMonth(curMonth);
+  if(!prevMonth) return [];
+  let prevData={};
+  try{ prevData=JSON.parse(localStorage.getItem(_monthKey(prevMonth))||'{}'); }catch(e){}
+  if(!(prevData.members||[]).length) return [];
+  const results=calcResults();
+  const warnings=[];
+  members.filter(m=>m.role==='specialist').forEach(m=>{
+    const curScore=results[m.id]?.totalScore||0;
+    if(curScore>=3) return;
+    const pm=prevData.members.find(x=>x.name===m.name);
+    if(!pm) return;
+    const prevScore=(prevData.hires||[]).filter(h=>h.memberId===pm.id).reduce((s,h)=>{
+      if(h.secondHire||h.left7) return s;
+      const sal=h.salaryFull||h.salaryTrial||h.salary||0;
+      const tier=getSalaryTier(sal);
+      return s+(h.left1month?tier.score*0.5:tier.score);
+    },0);
+    if(prevScore<3) warnings.push({member:m, curScore, prevScore, prevMonth});
+  });
+  return warnings;
+}
+
 // ── 总览 Dashboard ────────────────────────────────────────────────
 function renderOverview(){
   const el=document.getElementById('ov-content'); if(!el) return;
-  if(!members.length){ el.innerHTML='<div class="empty">暂无数据</div>'; return; }
+  if(!members.length){ el.innerHTML='<div class="empty">暂无数据，请前往计算器页面添加成员并录入业绩</div>'; return; }
   const results=calcResults();
   const activeMs=_filterTeamId?members.filter(m=>m.teamId===_filterTeamId):members;
   const activeHires=hires.filter(h=>activeMs.some(m=>m.id===h.memberId));
 
-  // 费用统计
   const totalPayout=activeMs.reduce((s,m)=>s+(results[m.id]?.totalPayout||0),0);
   const totalBonus =activeMs.reduce((s,m)=>s+(results[m.id]?.personalBonus||0)+(results[m.id]?.teamBonus||0),0);
-
-  // 入职统计
-  const hireCount   =activeHires.filter(h=>!h.secondHire).length;
-  const leftCount   =activeHires.filter(h=>h.left7||h.left1month).length;
+  const hireCount  =activeHires.filter(h=>!h.secondHire).length;
+  const leftCount  =activeHires.filter(h=>h.left7||h.left1month).length;
   const onboardCount=hireCount-leftCount;
-  const secondCount =activeHires.filter(h=>h.secondHire).length;
+  const secondCount=activeHires.filter(h=>h.secondHire).length;
 
-  // 团队排名（按专员人均分）
+  // 团队排名
   const teamRanks=teams.map(t=>{
     const specs=members.filter(m=>m.teamId===t.id&&m.role==='specialist');
     const valid=specs.filter(m=>(results[m.id]?.totalScore||0)>0);
     const avg=valid.length?valid.reduce((s,m)=>s+(results[m.id]?.totalScore||0),0)/valid.length:0;
     const totalScore=specs.reduce((s,m)=>s+(results[m.id]?.totalScore||0),0);
-    return {id:t.id,name:t.name,avg,totalScore,memberCount:specs.length};
+    return{id:t.id,name:t.name,avg,totalScore,memberCount:specs.length};
   }).filter(t=>t.memberCount>0).sort((a,b)=>b.avg-a.avg);
-
-  // 最优团队
   const bestTeam=teamRanks[0];
 
-  const rankHtml=teamRanks.length?teamRanks.map((t,i)=>{
+  // 连续两月落后警示
+  const warnings=getWarningMembers();
+  const warnHtml=warnings.length?`
+    <div class="warn-card">
+      <div class="warn-title">⚠️ 重点关注 — 连续两月业绩未达3分（${warnings.length}人）</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">
+        ${warnings.map(w=>{
+          const team=teams.find(t=>t.id===w.member.teamId);
+          const pm=w.prevMonth.replace('-','年')+'月';
+          return `<div class="warn-chip">
+            <span style="font-size:12px;font-weight:700;color:var(--tx)">${esc(w.member.name)}</span>
+            ${team?`<span style="font-size:10px;color:var(--red);margin-left:4px">${esc(team.name)}</span>`:''}
+            <div style="margin-top:4px;font-size:11px;color:var(--mt)">${pm} <span style="color:var(--red);font-weight:600">${w.prevScore.toFixed(1)}分</span> → 本月 <span style="color:var(--red);font-weight:600">${w.curScore.toFixed(1)}分</span></div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>` : '';
+
+  // 个人最高/最低（按团队）
+  const activeSpecs=activeMs.filter(m=>m.role==='specialist').sort((a,b)=>(results[b.id]?.totalScore||0)-(results[a.id]?.totalScore||0));
+  let indivHtml='';
+  if(teamRanks.length){
+    indivHtml=teamRanks.map(t=>{
+      const tSpecs=members.filter(m=>m.teamId===t.id&&m.role==='specialist').sort((a,b)=>(results[b.id]?.totalScore||0)-(results[a.id]?.totalScore||0));
+      if(!tSpecs.length) return '';
+      const top=tSpecs[0], bot=tSpecs[tSpecs.length-1], same=tSpecs.length===1;
+      return `<div class="indiv-card">
+        <div style="font-size:11px;font-weight:700;color:var(--blue);margin-bottom:0">${esc(t.name)}</div>
+        <div class="indiv-row">
+          <div class="indiv-item"><div class="indiv-lbl">🏆 本月最高</div>
+            <span style="font-size:13px;font-weight:700">${esc(top.name)}</span>
+            <span style="font-size:12px;color:var(--green);font-weight:700;margin-left:6px">${(results[top.id]?.totalScore||0).toFixed(1)}分</span>
+          </div>
+          ${!same?`<div class="indiv-item"><div class="indiv-lbl">📉 本月最低</div>
+            <span style="font-size:13px;font-weight:700">${esc(bot.name)}</span>
+            <span style="font-size:12px;font-weight:700;margin-left:6px;color:${(results[bot.id]?.totalScore||0)<3?'var(--red)':'var(--orange)'}">${(results[bot.id]?.totalScore||0).toFixed(1)}分</span>
+          </div>`:''}
+        </div>
+      </div>`;
+    }).filter(Boolean).join('');
+  } else if(activeSpecs.length){
+    const top=activeSpecs[0], bot=activeSpecs[activeSpecs.length-1], same=activeSpecs.length===1;
+    indivHtml=`<div class="indiv-card">
+      <div class="indiv-row">
+        <div class="indiv-item"><div class="indiv-lbl">🏆 本月最高</div>
+          <span style="font-size:13px;font-weight:700">${esc(top.name)}</span>
+          <span style="font-size:12px;color:var(--green);font-weight:700;margin-left:6px">${(results[top.id]?.totalScore||0).toFixed(1)}分</span>
+        </div>
+        ${!same?`<div class="indiv-item"><div class="indiv-lbl">📉 本月最低</div>
+          <span style="font-size:13px;font-weight:700">${esc(bot.name)}</span>
+          <span style="font-size:12px;font-weight:700;margin-left:6px;color:${(results[bot.id]?.totalScore||0)<3?'var(--red)':'var(--orange)'}">${(results[bot.id]?.totalScore||0).toFixed(1)}分</span>
+        </div>`:''}
+      </div>
+    </div>`;
+  }
+
+  const rankHtml=teamRanks.length>1?teamRanks.map((t,i)=>{
     const medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':'';
     const color=i===0?'var(--green)':i===1?'var(--blue)':'var(--mt)';
     return `<div class="rank-item">
@@ -1265,38 +1397,34 @@ function renderOverview(){
       <span class="rank-sc" style="color:${color};min-width:70px;text-align:center">${t.avg.toFixed(1)}均分</span>
       <span style="font-size:11px;color:var(--mt);min-width:55px;text-align:right">${t.totalScore.toFixed(1)}总分</span>
     </div>`;
-  }).join(''):'<div style="font-size:11px;color:var(--mt)">暂无团队数据</div>';
+  }).join('') : '';
 
   el.innerHTML=`
+    ${warnHtml}
     <div class="ov-grid">
-      <div class="ov-card">
-        <div class="ov-title">应发总额</div>
+      <div class="ov-card"><div class="ov-title">应发总额</div>
         <div class="ov-val" style="color:var(--green)">${Math.round(totalPayout).toLocaleString()}</div>
         <div class="ov-sub">提成合计 ${Math.round(totalBonus).toLocaleString()} 元</div>
       </div>
-      <div class="ov-card">
-        <div class="ov-title">入职总人数</div>
+      <div class="ov-card"><div class="ov-title">入职总人数</div>
         <div class="ov-val" style="color:var(--blue)">${hireCount}</div>
         <div class="ov-sub">在职 ${onboardCount} · 离职 ${leftCount}</div>
       </div>
-      <div class="ov-card">
-        <div class="ov-title">人员留存率</div>
+      <div class="ov-card"><div class="ov-title">人员留存率</div>
         <div class="ov-val" style="color:${hireCount?((onboardCount/hireCount)>=0.8?'var(--green)':'var(--orange)'):'var(--mt)'}">${hireCount?Math.round(onboardCount/hireCount*100)+'%':'—'}</div>
         <div class="ov-sub">二次入职 ${secondCount} 人（无效）</div>
       </div>
-      <div class="ov-card">
-        <div class="ov-title">本月最优团队</div>
+      <div class="ov-card"><div class="ov-title">本月最优团队</div>
         <div class="ov-val" style="color:var(--yellow);font-size:16px;line-height:1.4">${bestTeam?esc(bestTeam.name):'—'}</div>
         <div class="ov-sub">${bestTeam?`专员人均 ${bestTeam.avg.toFixed(1)} 分`:'暂无数据'}</div>
       </div>
-      <div class="ov-card">
-        <div class="ov-title">团队人数</div>
+      <div class="ov-card"><div class="ov-title">团队人数</div>
         <div class="ov-val" style="color:var(--purple)">${activeMs.length}</div>
         <div class="ov-sub">专员 ${activeMs.filter(m=>m.role==='specialist').length} · 组长 ${activeMs.filter(m=>m.role==='leader').length} · 主管 ${activeMs.filter(m=>m.role==='manager').length}</div>
       </div>
     </div>
-    ${teamRanks.length>1?`<div style="font-size:11px;font-weight:700;color:var(--mt);margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em">团队排名（按专员人均分）</div>
-    <div class="rank-list">${rankHtml}</div>`:''}`;
+    ${indivHtml?`<div style="font-size:11px;font-weight:700;color:var(--mt);margin:16px 0 8px;text-transform:uppercase;letter-spacing:.06em">专员个人最高 / 最低</div>${indivHtml}`:''}
+    ${rankHtml?`<div style="font-size:11px;font-weight:700;color:var(--mt);margin:16px 0 8px;text-transform:uppercase;letter-spacing:.06em">团队排名（按专员人均分）</div><div class="rank-list">${rankHtml}</div>`:''}`;
 }
 
 // ── 团队操作 ─────────────────────────────────────────────────────
@@ -2462,6 +2590,7 @@ window.onload = function(){
   loadSaved();
   if(!members.length) renderAll();
   renderTeamList(); renderRates(); renderFilterBar(); renderOverview();
+  setPage('overview');
   initSyncUI();
 };
 </script>
