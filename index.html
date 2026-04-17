@@ -172,6 +172,14 @@ button{cursor:pointer;border:none;font-family:inherit;transition:all .15s}
 .file-drop:hover,.file-drop.drag-over{border-color:var(--blue);background:rgba(79,142,247,0.06)}
 .json-ok{background:rgba(52,199,138,0.06);border:1px solid rgba(52,199,138,0.2);border-radius:8px;padding:10px 14px;font-size:11px;color:var(--mt);margin-bottom:12px;line-height:1.7}
 .json-ok b{color:var(--green)}
+
+/* Cloud sync */
+.sync-bar{display:flex;align-items:center;gap:8px;border-left:1px solid var(--bd);padding-left:14px;margin-left:4px;flex-wrap:wrap}
+.sync-code-inp{background:rgba(255,255,255,0.05);border:1px solid var(--bd);border-radius:8px;color:var(--tx);padding:5px 10px;font-size:12px;outline:none;font-family:monospace;letter-spacing:.1em;text-transform:uppercase;width:92px}
+.sync-code-inp:focus{border-color:var(--green)}
+.sync-btn{background:rgba(255,255,255,0.06);border:1px solid var(--bd);border-radius:7px;color:var(--mt);padding:5px 9px;font-size:12px;cursor:pointer;transition:all .15s;white-space:nowrap}
+.sync-btn:hover{background:rgba(52,199,138,0.1);color:var(--green);border-color:rgba(52,199,138,0.3)}
+.sync-status{font-size:11px;white-space:nowrap;min-width:52px}
 </style>
 </head>
 <body>
@@ -188,6 +196,14 @@ button{cursor:pointer;border:none;font-family:inherit;transition:all .15s}
     <div class="hdr-meta">
       <input class="meta-inp" type="month" id="f-month" value="" style="width:140px" oninput="autoSave()">
       <input class="meta-inp" type="text" id="f-team" placeholder="团队名称" style="width:160px" oninput="autoSave()">
+      <div class="sync-bar">
+        <span style="font-size:11px;color:var(--mt)">☁️ 同步码</span>
+        <input class="sync-code-inp" id="sync-code-inp" placeholder="输入/生成" maxlength="8"
+               oninput="onSyncCodeInput(this.value)" autocomplete="off" spellcheck="false">
+        <button class="sync-btn" onclick="generateSyncCode()" title="随机生成同步码">⟳ 生成</button>
+        <button class="sync-btn" onclick="cloudPull(true)" title="从云端拉取最新数据">↓ 拉取</button>
+        <span class="sync-status" id="sync-status" style="color:var(--mt)">未启用</span>
+      </div>
     </div>
   </div>
 </div>
@@ -950,6 +966,7 @@ function autoSave(){
     };
     localStorage.setItem('zp_commission_draft', JSON.stringify(state));
   }, 600);
+  scheduleSyncPush();
 }
 
 function loadSaved(){
@@ -1487,6 +1504,174 @@ function doExportHtml(){
   toast('HTML报告已导出','ok');
 }
 
+// ── 云同步 ────────────────────────────────────────────────────
+const _SB_URL = 'https://ltyjevlhgktnfgmtfhkc.supabase.co';
+const _SB_KEY = 'sb_publishable_epbBtEz5SxqzpPcm8o-vJA_mr1nZwRf';
+const _SB_TABLE = 'zp_sync';
+let _syncCode = (localStorage.getItem('zp_sync_code')||'').toUpperCase();
+let _syncPushTimer = null;
+let _syncing = false;
+
+function initSyncUI(){
+  if(_syncCode){
+    const inp = document.getElementById('sync-code-inp');
+    if(inp) inp.value = _syncCode;
+    cloudSyncOnLoad();
+  }
+}
+
+function setSyncStatus(state, label){
+  const el = document.getElementById('sync-status');
+  if(!el) return;
+  const map = {
+    off:     ['var(--mt)',    '未启用'],
+    syncing: ['var(--blue)',  '同步中…'],
+    ok:      ['var(--green)', '✓ 已同步'],
+    err:     ['var(--red)',   '✗ 失败'],
+  };
+  const [color, text] = map[state]||map.off;
+  el.style.color = color;
+  el.textContent = label||text;
+}
+
+function onSyncCodeInput(val){
+  _syncCode = val.trim().toUpperCase();
+  localStorage.setItem('zp_sync_code', _syncCode);
+  if(!_syncCode){ setSyncStatus('off'); return; }
+  if(_syncCode.length === 8) cloudInitSync();
+  else setSyncStatus('off', '请输入8位');
+}
+
+function generateSyncCode(){
+  const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code='';
+  for(let i=0;i<8;i++) code+=chars[Math.floor(Math.random()*chars.length)];
+  const inp=document.getElementById('sync-code-inp');
+  if(inp) inp.value=code;
+  _syncCode=code;
+  localStorage.setItem('zp_sync_code',code);
+  cloudInitSync();
+  toast('同步码已生成，在其他设备输入同一个码即可同步','info');
+}
+
+async function _sbReq(path, opts={}){
+  return fetch(_SB_URL+path, {
+    ...opts,
+    headers:{
+      'apikey':_SB_KEY,'Authorization':'Bearer '+_SB_KEY,
+      'Content-Type':'application/json',
+      ...(opts.headers||{})
+    }
+  });
+}
+
+async function _pushData(){
+  const data={month:v('f-month'),team:v('f-team'),members,hires,adjs,_uid,_savedAt:Date.now()};
+  const res=await _sbReq('/rest/v1/'+_SB_TABLE,{
+    method:'POST',
+    headers:{'Prefer':'resolution=merge-duplicates'},
+    body:JSON.stringify({code:_syncCode,data,updated_at:new Date().toISOString()})
+  });
+  if(!res.ok){ const e=await res.json(); throw new Error(e.message||res.status); }
+}
+
+async function _fetchCloud(){
+  const res=await _sbReq(`/rest/v1/${_SB_TABLE}?code=eq.${encodeURIComponent(_syncCode)}&select=data,updated_at`);
+  if(!res.ok) throw new Error(res.status);
+  const rows=await res.json();
+  return rows[0]||null;
+}
+
+function _applyCloud(row){
+  const d=row.data;
+  if(d.month) set('f-month',d.month);
+  if(d.team)  set('f-team',d.team);
+  members=d.members||[]; hires=d.hires||[]; adjs=d.adjs||{};
+  const ids=[...members.map(m=>m.id),...hires.map(h=>h.id)].filter(Number.isFinite);
+  _uid=ids.length?Math.max(...ids)+1:1;
+  localStorage.setItem('zp_commission_draft',JSON.stringify({...d,_savedAt:Date.now()}));
+  renderAll();
+}
+
+async function cloudInitSync(){
+  if(!_syncCode||_syncing) return;
+  _syncing=true; setSyncStatus('syncing');
+  try{
+    const row=await _fetchCloud();
+    if(row){
+      const cloudT=new Date(row.updated_at).getTime();
+      const localT=+(JSON.parse(localStorage.getItem('zp_commission_draft')||'{}')._savedAt||0);
+      if(cloudT>localT+3000){
+        const cloudMs=(row.data.members||[]).length;
+        const syncTime=new Date(row.updated_at).toLocaleString('zh-CN');
+        if(!members.length||confirm(`云端找到数据（${cloudMs}位成员，上次同步：${syncTime}）\n是否用云端数据覆盖当前本地？\n\n取消则将本地数据上传至云端`)){
+          _applyCloud(row);
+          toast('已从云端同步数据','info');
+        } else {
+          await _pushData();
+          toast('本地数据已上传至云端','ok');
+        }
+      } else {
+        await _pushData();
+        toast('数据已与云端同步','ok');
+      }
+    } else {
+      await _pushData();
+      toast('数据已上传至云端，同步码：'+_syncCode,'ok');
+    }
+    setSyncStatus('ok');
+  }catch(e){
+    setSyncStatus('err');
+    toast('云同步失败：'+e.message,'err');
+    console.error(e);
+  }finally{ _syncing=false; }
+}
+
+async function cloudSyncOnLoad(){
+  if(!_syncCode) return;
+  setSyncStatus('syncing','检查中…');
+  try{
+    const row=await _fetchCloud();
+    if(!row){ setSyncStatus('ok'); return; }
+    const cloudT=new Date(row.updated_at).getTime();
+    const localT=+(JSON.parse(localStorage.getItem('zp_commission_draft')||'{}')._savedAt||0);
+    if(cloudT>localT+3000){
+      _applyCloud(row);
+      toast('已自动同步云端最新数据','info');
+    }
+    setSyncStatus('ok');
+  }catch(e){ setSyncStatus('err'); }
+}
+
+async function cloudPull(manual=false){
+  if(!_syncCode){ toast('请先输入或生成同步码','err'); return; }
+  if(_syncing) return;
+  _syncing=true; setSyncStatus('syncing');
+  try{
+    const row=await _fetchCloud();
+    if(!row){ setSyncStatus('ok'); toast('云端暂无此同步码的数据','info'); return; }
+    if(manual&&members.length&&!confirm('确认用云端数据覆盖当前本地数据？')) { setSyncStatus('ok'); return; }
+    _applyCloud(row);
+    setSyncStatus('ok');
+    toast('已从云端拉取最新数据','info');
+  }catch(e){
+    setSyncStatus('err');
+    toast('拉取失败：'+e.message,'err');
+  }finally{ _syncing=false; }
+}
+
+function scheduleSyncPush(){
+  if(!_syncCode) return;
+  clearTimeout(_syncPushTimer);
+  _syncPushTimer=setTimeout(async()=>{
+    if(_syncing) return;
+    _syncing=true; setSyncStatus('syncing');
+    try{ await _pushData(); setSyncStatus('ok'); }
+    catch(e){ setSyncStatus('err'); console.error('push:',e); }
+    finally{ _syncing=false; }
+  }, 2500);
+}
+
 // ── 折叠面板 ──────────────────────────────────────────────────
 function toggleSec(bodyId, arrowId){
   const body = document.getElementById(bodyId);
@@ -1497,11 +1682,11 @@ function toggleSec(bodyId, arrowId){
 
 // ── 初始化 ─────────────────────────────────────────────────────
 window.onload = function(){
-  // 默认当月
   const now=new Date();
   set('f-month',`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`);
   loadSaved();
   if(!members.length) renderAll();
+  initSyncUI();
 };
 </script>
 </body>
