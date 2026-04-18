@@ -324,7 +324,7 @@ button{cursor:pointer;border:none;font-family:inherit;transition:all .15s}
   </div>
   <div id="rates-body" class="sec-body">
     <div style="font-size:11px;color:var(--mt);margin-bottom:6px;line-height:1.6">所有薪资按以下汇率折算为人民币后计算分值，表格只显示人民币金额。1 CNY = 1（固定）<br>
-    <b style="color:var(--mt2,#8a8)">导入识别键</b>：美金 <b style="color:var(--tx)">USD / $</b> ｜ 英镑 <b style="color:var(--tx)">GBP / £</b> ｜ 台币 <b style="color:var(--tx)">TWD / NT$</b> ｜ 韩元 <b style="color:var(--tx)">KRW / ₩</b> ｜ 日元 <b style="color:var(--tx)">JPY / 円</b> ｜ 迪拉姆 <b style="color:var(--tx)">AED</b> ｜ 人民币 <b style="color:var(--tx)">CNY / ¥</b>（默认）</div>
+    <b style="color:var(--mt2,#8a8)">导入识别键</b>：美金 <b style="color:var(--tx)">USD / $</b> ｜ 英镑 <b style="color:var(--tx)">GBP / £</b> ｜ 台币 <b style="color:var(--tx)">TWD / NTD$ / NT$</b> ｜ 韩元 <b style="color:var(--tx)">KRW / ₩</b> ｜ 日元 <b style="color:var(--tx)">JPY / 円</b> ｜ 迪拉姆 <b style="color:var(--tx)">AED</b> ｜ 人民币 <b style="color:var(--tx)">CNY / ¥</b>（默认）</div>
     <div class="rate-grid" id="rate-grid"></div>
   </div>
 </div>
@@ -767,7 +767,7 @@ const CURR_INFO = {
   CNY:{name:'人民币', sym:'¥',   label:'CNY ¥'},
   USD:{name:'美金',   sym:'$',   label:'USD $'},
   GBP:{name:'英镑',   sym:'£',   label:'GBP £'},
-  TWD:{name:'台币',   sym:'NT$', label:'TWD NT$'},
+  TWD:{name:'台币',   sym:'NTD$',label:'TWD NTD$'},
   KRW:{name:'韩元',   sym:'₩',   label:'KRW ₩'},
   AED:{name:'迪拉姆', sym:'AED', label:'AED د.إ'},
   JPY:{name:'日元',   sym:'¥',   label:'JPY ¥'}
@@ -1881,7 +1881,7 @@ async function _parseHireDataExcel(wb, filename){
   const detectCurrency=v=>{
     const s=String(v||'').toUpperCase();
     // 先判带专有前缀/符号的货币，避免被普通 $ / ¥ 吞掉
-    if(/TWD|NT\$|NT\s*\d|台幣|台币|新台/.test(s)) return 'TWD';
+    if(/TWD|NTD\$?|NT\$|NT\s*\d|台幣|台币|新台/.test(s)) return 'TWD';
     if(/JPY|日元|日圆|円/.test(s))                 return 'JPY';
     if(/KRW|₩|韩元|韓元|원/.test(s))              return 'KRW';
     if(/GBP|£|英镑/.test(s))                      return 'GBP';
