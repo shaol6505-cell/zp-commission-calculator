@@ -521,10 +521,10 @@ button{cursor:pointer;border:none;font-family:inherit;transition:all .15s}
         </table>
       </div>
       <div class="rules-note">
-        <b>当月业绩高于现级别要求时，享受对应高级别底薪和奖金标准。</b><br>
-        例：专员当月5分（符合中级）→ 底薪12K，奖金 = (5−2)分 × 对应单价<br>
-        例：专员当月8分（符合高级）→ 底薪15K，奖金 = (8−2)分 × 对应单价<br>
-        <b style="color:var(--orange)">组长 / 主管底薪：</b>系统不自动核算（因人而异），结果表底薪列留空，由 HR 导出后另行加上。但组长/主管的 <b>个人提成 / 团队提成 / 调整项</b> 均正常计算，应发合计已包含这三项。<br>
+        <b>当月业绩高于现级别要求时，享受对应高级别奖金标准。</b><br>
+        例：专员当月5分（符合中级）→ 奖金 = (5−2)分 × 对应单价<br>
+        例：专员当月8分（符合高级）→ 奖金 = (8−2)分 × 对应单价<br>
+        <b style="color:var(--orange)">底薪（所有角色）：</b>系统当前暂不自动核算，结果表底薪列留空显示 <b>"—"</b>，由 HR 导出后根据实际合同另行加上。<b>个人提成 / 团队提成 / 调整项</b> 均正常计算，应发合计已包含这三项。<br>
         <b>转正标准：</b>第一月达标2分转正（初级）；次月未达3分淘汰 ｜
         <b>职级评定窗口：</b>1月、7月（入职不满半年不参与晋级）<br>
         初级→中级：上半年均分≥8分 ｜ 中级→高级：上半年均分≥10分 ｜ 上季度均分低于5分降为初级，低于8分降为中级
@@ -899,17 +899,18 @@ function hireScore(hire){
 
 // ── 级别判定（当月分值决定当月底薪和任务分基数） ──────────────
 // 依据PDF示例：5分=中级(任务3分→奖励2分×rate) / 8分=高级(任务2分→奖励6分×rate)
-// 专员：底薪按分值浮动（0级/初级/中级/高级）
-// 组长/主管：底薪因人而异，系统不自动填（noBase=true → UI 显示"—"），任务分门槛仍按分值判定以保留个人提成计算
+// 底薪：当前版本系统统一不自动核算（所有角色 noBase=true，底薪列显示"—"），由 HR 另行处理
+// 级别：专员仍显示 0级/初级/中级/高级，组长/主管显示"—"（级别概念对他们无意义）
 function getEffectiveLevel(score, role){
-  const lv = (score>=8) ? {name:'高级', base:15000, task:2, threshold:8}
-           : (score>=5) ? {name:'中级', base:12000, task:2, threshold:5}
-           : (score>=3) ? {name:'初级', base:10000, task:2, threshold:3}
-           :              {name:'0级',  base:8000,  task:0, threshold:0};
+  const byScore = (score>=8) ? {name:'高级', task:2, threshold:8}
+                : (score>=5) ? {name:'中级', task:2, threshold:5}
+                : (score>=3) ? {name:'初级', task:2, threshold:3}
+                :              {name:'0级',  task:0, threshold:0};
   if(role==='leader' || role==='manager'){
-    return { ...lv, name:'—', base:0, noBase:true };
+    return { name:'—', base:0, task:byScore.task, threshold:byScore.threshold, noBase:true, noLevel:true };
   }
-  return lv;
+  // 专员保留级别名，但底薪也不再自动计入应发合计
+  return { name:byScore.name, base:0, task:byScore.task, threshold:byScore.threshold, noBase:true };
 }
 
 // ── 档位（A/B/C） ────────────────────────────────────────────────
@@ -1396,8 +1397,8 @@ function renderResults(){
       <td style="text-align:center;font-size:11px;color:var(--orange)">${group?('🔸'+esc(group.name)):'—'}</td>
       <td style="text-align:center">${roleLabel[m.role]}</td>
       <td style="text-align:center;font-weight:700;color:var(--blue)">${r.totalScore.toFixed(1)}</td>
-      <td style="text-align:center">${r.effectiveLevel.noBase?'<span style="color:var(--mt)">—</span>':`<span class="level-tag ${lvClass}">${r.effectiveLevel.name}</span>`}</td>
-      <td style="text-align:center">${r.effectiveLevel.noBase?'<span style="color:var(--mt)">—</span>':r.effectiveLevel.base.toLocaleString()}</td>
+      <td style="text-align:center">${r.effectiveLevel.noLevel?'<span style="color:var(--mt)">—</span>':`<span class="level-tag ${lvClass}">${r.effectiveLevel.name}</span>`}</td>
+      <td style="text-align:center"><span style="color:var(--mt)">—</span></td>
       <td style="text-align:center">${tierHtml}</td>
       <td style="text-align:center;color:var(--green);font-weight:600">${r.personalBonus.toLocaleString()}</td>
       <td style="text-align:center;color:var(--purple);font-weight:600">${r.teamBonus.toLocaleString()}</td>
@@ -2015,8 +2016,8 @@ async function doExport(){
     const groupName = (getMemberGroup(m)||{}).name||'';
     const row = ws1.addRow([
       m.name, teamName, groupName, roleLabel[m.role],
-      r2.totalScore.toFixed(1), r2.effectiveLevel.noBase?'':r2.effectiveLevel.name,
-      r2.effectiveLevel.noBase?'':r2.effectiveLevel.base, tierText,
+      r2.totalScore.toFixed(1), r2.effectiveLevel.noLevel?'':r2.effectiveLevel.name,
+      '', tierText,
       r2.personalBonus, r2.teamBonus, r2.adjAmt||0, r2.totalPayout, r2.adjNote||''
     ]);
     row.height=18;
@@ -2620,8 +2621,8 @@ function doExportHtml(){
       <td style="text-align:left;font-weight:600">${esc(m.name)}</td>
       <td>${roleLabel[m.role]}</td>
       <td style="color:#4f8ef7;font-weight:700">${r.totalScore.toFixed(1)}</td>
-      <td style="color:${r.effectiveLevel.noBase?'#8b92a5':lc};font-weight:600">${r.effectiveLevel.noBase?'—':r.effectiveLevel.name}</td>
-      <td>${r.effectiveLevel.noBase?'—':r.effectiveLevel.base.toLocaleString()}</td>
+      <td style="color:${r.effectiveLevel.noLevel?'#8b92a5':lc};font-weight:600">${r.effectiveLevel.noLevel?'—':r.effectiveLevel.name}</td>
+      <td style="color:#8b92a5">—</td>
       <td style="color:${tc};font-weight:700">${tierText}</td>
       <td style="color:#34c78a;font-weight:600">${r.personalBonus.toLocaleString()}</td>
       <td style="color:#a78bfa;font-weight:600">${r.teamBonus.toLocaleString()}</td>
@@ -3050,8 +3051,8 @@ function showDetailModal(memberId){
             总分 <span class="hl-b">${r.totalScore.toFixed(1)}分</span>
             专员人均 <span class="hl-b">${r.specAvg.toFixed(1)}分</span>
             档位 <span class="${r.specTier==='C'?'hl-g':r.specTier==='B'?'hl-b':'hl-o'}">${r.specTier==='none'?'未达档':r.specTier+'档'}</span>
-            级别 <span class="${lv.name==='高级'?'hl-g':lv.name==='中级'?'hl-p':lv.name==='初级'?'hl-b':''}">${lv.noBase?'—':lv.name}</span>
-            底薪 <span class="${lv.noBase?'':'hl-o'}" ${lv.noBase?'style="color:var(--mt)"':''}>${lv.noBase?'— (组长/主管底薪由 HR 另行核定)':lv.base.toLocaleString()+'元'}</span>
+            级别 <span class="${lv.name==='高级'?'hl-g':lv.name==='中级'?'hl-p':lv.name==='初级'?'hl-b':''}">${lv.noLevel?'—':lv.name}</span>
+            底薪 <span style="color:var(--mt)">— (系统暂不核算底薪)</span>
           </div>
         </div>
         <div class="detail-section"><div class="detail-section-title">个人提成计算</div>${bonusHtml}</div>
@@ -3060,12 +3061,12 @@ function showDetailModal(memberId){
           <div class="detail-formula">＋<span class="hl-o">${r.adjAmt.toLocaleString()}元</span>　${esc(r.adjNote)}</div></div>`:''}
         <div class="detail-section" style="margin-bottom:0"><div class="detail-section-title">应发合计（系统部分）</div>
           <div class="detail-formula">
-            ${lv.noBase?`底薪 <span style="color:var(--mt)">（HR另核）</span>`:`底薪 <span class="hl-o">${lv.base.toLocaleString()}</span>`}
+            底薪 <span style="color:var(--mt)">（暂不核算）</span>
             ＋ 个人提成 <span class="hl-g">${r.personalBonus.toLocaleString()}</span>
             ＋ 团队提成 <span class="hl-p">${r.teamBonus.toLocaleString()}</span>
             ${r.adjAmt?`＋ 调整 <span class="hl-o">${r.adjAmt.toLocaleString()}</span>`:''}
             ＝ <span class="detail-payout">${r.totalPayout.toLocaleString()}元</span>
-            ${lv.noBase?'<div style="font-size:11px;color:var(--mt);margin-top:8px">⚠️ 组长/主管底薪系统不自动核算，请 HR 在导出后按实际约定另行加上。</div>':''}
+            <div style="font-size:11px;color:var(--mt);margin-top:8px">⚠️ 底薪系统当前暂不核算，请 HR 在导出后按实际约定另行加上。</div>
           </div>
         </div>
       </div>
