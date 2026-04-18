@@ -2792,6 +2792,16 @@ async function cloudSyncOnLoad(){
   try{
     const row=await _fetchCloud();
     if(!row){ setSyncStatus('ok'); return; }
+    const cloudHasData = (row.data.teams||[]).length>0 || (row.data.members||[]).length>0 || (row.data.hires||[]).length>0;
+    const localEmpty   = teams.length===0 && members.length===0 && hires.length===0;
+    // 云端有数据、本地空 → 无条件拉取（避免本地空态把云端覆盖）
+    if(cloudHasData && localEmpty){
+      _applyCloud(row);
+      toast('已从云端同步数据','info');
+      setSyncStatus('ok');
+      return;
+    }
+    // 否则按时间戳判断：云端明显较新才覆盖本地
     const cloudT=new Date(row.updated_at).getTime();
     const localT=+(JSON.parse(localStorage.getItem('zp_commission_draft')||'{}')._savedAt||0);
     if(cloudT>localT+3000){
@@ -2824,6 +2834,11 @@ function scheduleSyncPush(){
   clearTimeout(_syncPushTimer);
   _syncPushTimer=setTimeout(async()=>{
     if(_syncing) return;
+    // 空状态保护：若本地完全没数据就绝不推送（避免误覆盖云端），切月/清空触发的无脑 push 都挡在这里
+    if(teams.length===0 && members.length===0 && hires.length===0){
+      setSyncStatus('ok');
+      return;
+    }
     _syncing=true; setSyncStatus('syncing');
     try{ await _pushData(); setSyncStatus('ok'); }
     catch(e){ setSyncStatus('err'); console.error('push:',e); }
