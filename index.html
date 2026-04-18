@@ -2747,25 +2747,36 @@ async function cloudInitSync(){
   try{
     const row=await _fetchCloud();
     if(row){
-      const cloudT=new Date(row.updated_at).getTime();
-      const localT=+(JSON.parse(localStorage.getItem('zp_commission_draft')||'{}')._savedAt||0);
-      if(cloudT>localT+3000){
-        const cloudMs=(row.data.members||[]).length;
-        const syncTime=new Date(row.updated_at).toLocaleString('zh-CN');
-        if(!members.length||confirm(`云端找到数据（${cloudMs}位成员，上次同步：${syncTime}）\n是否用云端数据覆盖当前本地？\n\n取消则将本地数据上传至云端`)){
-          _applyCloud(row);
-          toast('已从云端同步数据','info');
-        } else {
-          await _pushData();
-          toast('本地数据已上传至云端','ok');
-        }
+      // 云端已有此同步码数据
+      const cloudMs=(row.data.members||[]).length;
+      const cloudHs=(row.data.hires||[]).length;
+      const cloudTs=(row.data.teams||[]).length;
+      const syncTime=new Date(row.updated_at).toLocaleString('zh-CN');
+      const hasLocal = members.length>0 || hires.length>0 || teams.length>0;
+      if(!hasLocal){
+        // 本地空白 → 直接拉取
+        _applyCloud(row);
+        toast('已从云端拉取数据','ok');
       } else {
-        await _pushData();
-        toast('数据已与云端同步','ok');
+        // 本地有数据 → 明确询问方向，默认拉取云端
+        const ok = confirm(
+          `云端同步码【${_syncCode}】有数据：\n` +
+          `  · 云端：${cloudTs}团队 · ${cloudMs}成员 · ${cloudHs}业绩（${syncTime}）\n` +
+          `  · 本地：${teams.length}团队 · ${members.length}成员 · ${hires.length}业绩\n\n` +
+          `确定 = ↓ 用云端覆盖本地（拉取）\n` +
+          `取消 = 保留本地，暂不推送（如需推送请手动编辑后自动同步）`
+        );
+        if(ok){
+          _applyCloud(row);
+          toast('已从云端拉取数据','ok');
+        } else {
+          toast('已保留本地数据，未拉取云端','info');
+        }
       }
     } else {
+      // 云端此码尚无数据 → 首次上传本地
       await _pushData();
-      toast('数据已上传至云端，同步码：'+_syncCode,'ok');
+      toast('本地数据已上传至云端（同步码 '+_syncCode+'）','ok');
     }
     setSyncStatus('ok');
   }catch(e){
