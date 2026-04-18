@@ -1400,7 +1400,6 @@ function renderOverview(){
   }).join('') : '';
 
   el.innerHTML=`
-    ${warnHtml}
     <div class="ov-grid">
       <div class="ov-card"><div class="ov-title">应发总额</div>
         <div class="ov-val" style="color:var(--green)">${Math.round(totalPayout).toLocaleString()}</div>
@@ -1424,7 +1423,8 @@ function renderOverview(){
       </div>
     </div>
     ${rankHtml?`<div style="font-size:11px;font-weight:700;color:var(--mt);margin:16px 0 8px;text-transform:uppercase;letter-spacing:.06em">团队排名（按专员人均分）</div><div class="rank-list">${rankHtml}</div>`:''}
-    ${indivHtml?`<div style="font-size:11px;font-weight:700;color:var(--mt);margin:16px 0 8px;text-transform:uppercase;letter-spacing:.06em">专员个人最高 / 最低</div>${indivHtml}`:''}`;
+    ${indivHtml?`<div style="font-size:11px;font-weight:700;color:var(--mt);margin:16px 0 8px;text-transform:uppercase;letter-spacing:.06em">专员个人最高 / 最低</div>${indivHtml}`:''}
+    ${warnHtml}`;
 }
 
 // ── 团队操作 ─────────────────────────────────────────────────────
