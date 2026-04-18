@@ -2655,10 +2655,8 @@ function doExportHtml(){
   toast('HTML报告已导出','ok');
 }
 
-// ── 云同步 ────────────────────────────────────────────────────
-const _SB_URL = 'https://ltyjevlhgktnfgmtfhkc.supabase.co';
-const _SB_KEY = 'sb_publishable_epbBtEz5SxqzpPcm8o-vJA_mr1nZwRf';
-const _SB_TABLE = 'zp_sync';
+// ── 云同步（Cloudflare Workers + KV） ─────────────────────────
+const _SYNC_URL = 'https://zp-sync.shaol6505.workers.dev';
 let _syncCode = (localStorage.getItem('zp_sync_code')||'').toUpperCase();
 let _syncPushTimer = null;
 let _syncing = false;
@@ -2705,32 +2703,26 @@ function generateSyncCode(){
   toast('同步码已生成，在其他设备输入同一个码即可同步','info');
 }
 
-async function _sbReq(path, opts={}){
-  return fetch(_SB_URL+path, {
-    ...opts,
-    headers:{
-      'apikey':_SB_KEY,'Authorization':'Bearer '+_SB_KEY,
-      'Content-Type':'application/json',
-      ...(opts.headers||{})
-    }
-  });
-}
-
 async function _pushData(){
   const data={month:v('f-month'),team:v('f-team'),teams,groups,members,hires,adjs,rates,_uid,_savedAt:Date.now()};
-  const res=await _sbReq('/rest/v1/'+_SB_TABLE,{
+  const res=await fetch(`${_SYNC_URL}/?code=${encodeURIComponent(_syncCode)}`,{
     method:'POST',
-    headers:{'Prefer':'resolution=merge-duplicates'},
-    body:JSON.stringify({code:_syncCode,data,updated_at:new Date().toISOString()})
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(data)
   });
-  if(!res.ok){ const e=await res.json(); throw new Error(e.message||res.status); }
+  if(!res.ok){
+    let msg=res.status;
+    try{ const e=await res.json(); msg=e.error||e.message||msg; }catch(_){}
+    throw new Error(msg);
+  }
 }
 
 async function _fetchCloud(){
-  const res=await _sbReq(`/rest/v1/${_SB_TABLE}?code=eq.${encodeURIComponent(_syncCode)}&select=data,updated_at`);
+  const res=await fetch(`${_SYNC_URL}/?code=${encodeURIComponent(_syncCode)}`);
   if(!res.ok) throw new Error(res.status);
-  const rows=await res.json();
-  return rows[0]||null;
+  const body=await res.json();
+  // Worker 返回 null 表示此同步码暂无数据；否则 {data, updated_at}
+  return body||null;
 }
 
 function _applyCloud(row){
