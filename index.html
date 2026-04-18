@@ -855,6 +855,34 @@ function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;')
 const _roleOrder={manager:0,leader:1,specialist:2};
 function sortByRole(arr){ return arr.slice().sort((a,b)=>(_roleOrder[a.role]||0)-(_roleOrder[b.role]||0)); }
 
+// 团队内排序：主管 → 小组1(组长→专员) → 小组2(组长→专员) → … → 无小组(组长→专员)
+function sortMembersByTeamGroup(teamMembers, teamId){
+  const managers = teamMembers.filter(m=>m.role==='manager');
+  const nonMgr   = teamMembers.filter(m=>m.role!=='manager');
+  const gList    = teamId ? groupsOfTeam(teamId) : [];
+  const out = [...managers];
+  gList.forEach(g=>{
+    const leaders = nonMgr.filter(m=>m.groupId===g.id && m.role==='leader');
+    const specs   = nonMgr.filter(m=>m.groupId===g.id && m.role==='specialist');
+    out.push(...leaders, ...specs);
+  });
+  const noGrp = nonMgr.filter(m=>!m.groupId);
+  out.push(
+    ...noGrp.filter(m=>m.role==='leader'),
+    ...noGrp.filter(m=>m.role==='specialist')
+  );
+  return out;
+}
+// 全局排序：团队顺序 → 团队内主管/小组/角色顺序；无团队放末尾
+function sortMembersGlobal(arr){
+  const out=[];
+  teams.forEach(t=>{
+    out.push(...sortMembersByTeamGroup(arr.filter(m=>m.teamId===t.id), t.id));
+  });
+  out.push(...sortMembersByTeamGroup(arr.filter(m=>!m.teamId), null));
+  return out;
+}
+
 // ── 薪资→分值 ────────────────────────────────────────────────────
 function getSalaryTier(salary){
   return SALARY_TIERS.find(t => salary <= t.max) || SALARY_TIERS[SALARY_TIERS.length-1];
@@ -1126,20 +1154,51 @@ function renderMemberList(){
   }).join('');
 
   if(!teams.length){
-    el.innerHTML = rowOf(members); return;
+    el.innerHTML = rowOf(sortMembersByTeamGroup(members, null)); return;
   }
+  // 小组分隔条
+  const groupDivider = (name, leaderCount, specCount, colored=true) => `
+    <div style="display:flex;align-items:center;gap:6px;margin:8px 0 4px 0">
+      <span style="font-size:10px;font-weight:700;color:${colored?'var(--orange)':'var(--mt)'}">${colored?'🔸':'🔹'} ${esc(name)}</span>
+      <span style="font-size:10px;color:var(--mt)">${leaderCount>0?'组长'+leaderCount+' · ':'缺组长 · '}专员${specCount}</span>
+      <span style="flex:1;height:1px;background:${colored?'rgba(245,166,35,0.2)':'rgba(255,255,255,0.08)'}"></span>
+    </div>`;
+
   let html = '';
   teams.forEach(t=>{
     const tm = members.filter(m=>m.teamId===t.id);
     if(!tm.length) return;
     const exp = _expandedMemberTeams.has(t.id);
+    const gList = groupsOfTeam(t.id);
+    const managersInTeam = tm.filter(m=>m.role==='manager');
+
+    let body = '';
+    // 1. 主管置顶（无分隔条）
+    if(managersInTeam.length) body += rowOf(managersInTeam);
+    // 2. 按顺序渲染每个小组
+    gList.forEach(g=>{
+      const gLeaders = tm.filter(m=>m.groupId===g.id && m.role==='leader');
+      const gSpecs   = tm.filter(m=>m.groupId===g.id && m.role==='specialist');
+      if(!gLeaders.length && !gSpecs.length) return;
+      body += groupDivider(g.name, gLeaders.length, gSpecs.length, true);
+      body += rowOf([...gLeaders, ...gSpecs]);
+    });
+    // 3. 无小组的组长/专员（若有）
+    const ungrouped = tm.filter(m=>m.role!=='manager' && !m.groupId);
+    if(ungrouped.length){
+      const ngLeaders = ungrouped.filter(m=>m.role==='leader');
+      const ngSpecs   = ungrouped.filter(m=>m.role==='specialist');
+      body += groupDivider('无小组', ngLeaders.length, ngSpecs.length, false);
+      body += rowOf([...ngLeaders, ...ngSpecs]);
+    }
+
     html += `<div class="team-group">
       <div class="team-group-hdr" style="cursor:pointer;user-select:none" onclick="toggleMemberTeam(${t.id})">
         <span class="team-group-name">${esc(t.name)}</span>
-        <span class="team-group-count">${tm.length}人</span>
+        <span class="team-group-count">${tm.length}人${gList.length?` · ${gList.length}组`:''}</span>
         <span style="margin-left:auto;font-size:11px;color:var(--mt)">${exp?'▼':'▶'}</span>
       </div>
-      <div style="display:${exp?'flex':'none'};flex-direction:column;gap:6px;margin-top:6px">${rowOf(tm)}</div>
+      <div style="display:${exp?'flex':'none'};flex-direction:column;gap:4px;margin-top:6px">${body}</div>
     </div>`;
   });
   const noTeam = members.filter(m=>!m.teamId);
@@ -1150,7 +1209,7 @@ function renderMemberList(){
         <span style="font-size:11px;color:var(--mt);font-weight:600">未分配团队（${noTeam.length}人）</span>
         <span style="font-size:11px;color:var(--mt)">${exp?'▼':'▶'}</span>
       </div>
-      <div style="display:${exp?'flex':'none'};flex-direction:column;gap:6px">${rowOf(noTeam)}</div>
+      <div style="display:${exp?'flex':'none'};flex-direction:column;gap:4px">${rowOf(sortMembersByTeamGroup(noTeam,null))}</div>
     </div>`;
   }
   el.innerHTML = html;
@@ -1268,24 +1327,25 @@ function renderHireSections(){
     </div>`;
   };
 
-  // 按团队分组渲染
+  // 按团队 + 小组分组渲染
   if(!teams.length || !showMs.some(m=>m.teamId)){
-    el.innerHTML = sortByRole(showMs).map(renderMemberSection).join(''); return;
+    el.innerHTML = sortMembersByTeamGroup(showMs, null).map(renderMemberSection).join(''); return;
   }
   let html='';
   const renderedIds=new Set();
   teams.forEach(t=>{
-    const tm=sortByRole(showMs.filter(m=>m.teamId===t.id));
+    const tm=sortMembersByTeamGroup(showMs.filter(m=>m.teamId===t.id), t.id);
     if(!tm.length) return;
+    const gCount = groupsOfTeam(t.id).length;
     html+=`<div style="margin-bottom:16px">
       <div class="team-group-hdr" style="margin-bottom:6px">
         <span class="team-group-name">${esc(t.name)}</span>
-        <span class="team-group-count">${tm.length}人</span>
+        <span class="team-group-count">${tm.length}人${gCount?` · ${gCount}组`:''}</span>
       </div>
       ${tm.map(m=>{ renderedIds.add(m.id); return renderMemberSection(m); }).join('')}
     </div>`;
   });
-  const noTeam=sortByRole(showMs.filter(m=>!renderedIds.has(m.id)));
+  const noTeam=sortMembersByTeamGroup(showMs.filter(m=>!renderedIds.has(m.id)), null);
   if(noTeam.length) html+=noTeam.map(renderMemberSection).join('');
   el.innerHTML=html;
 }
@@ -1298,11 +1358,8 @@ function toggleMemberHires(memberId){
 
 function renderResults(){
   const results = calcResults();
-  // 按筛选过滤
-  const showMs = filteredMembers().slice().sort((a,b)=>{
-    const ro=_roleOrder[a.role]-_roleOrder[b.role];
-    return ro!==0?ro:(results[b.id]?.totalScore||0)-(results[a.id]?.totalScore||0);
-  });
+  // 按团队 → 小组 → 角色排序（与成员列表/业绩段一致）
+  const showMs = sortMembersGlobal(filteredMembers());
   const totalPayout = showMs.reduce((s,m)=>s+(results[m.id]?.totalPayout||0),0);
   const totalBonus  = showMs.reduce((s,m)=>s+(results[m.id]?.personalBonus||0)+(results[m.id]?.teamBonus||0),0);
   const totalScore  = showMs.reduce((s,m)=>s+(results[m.id]?.totalScore||0),0);
@@ -1941,9 +1998,10 @@ async function doExport(){
       c.border={bottom:{style:'medium',color:{argb:'FF1A5276'}}};
     });
   }
-  // 数据行
+  // 数据行（按团队→小组→角色排序，与界面一致）
+  const sortedMembers = sortMembersGlobal(members);
   let totalRow = {base:0,personal:0,team:0,adj:0,total:0};
-  members.forEach((m,i)=>{
+  sortedMembers.forEach((m,i)=>{
     const r2 = results[m.id];
     const tierText = r2.specTier==='none' ? '未达档' : r2.specTier+'档';
     const teamName = (teams.find(t=>t.id===m.teamId)||{}).name||'';
@@ -2008,7 +2066,7 @@ async function doExport(){
       c.alignment={horizontal:'center',vertical:'middle'};
     });
   }
-  members.forEach((m,mi)=>{
+  sortedMembers.forEach((m,mi)=>{
     const mHires = hires.filter(h=>h.memberId===m.id);
     mHires.forEach((h,i)=>{
       const t=getSalaryTier(getHireSalaryCNY(h));
