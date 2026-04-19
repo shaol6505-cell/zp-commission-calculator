@@ -547,10 +547,10 @@ button{cursor:pointer;border:none;font-family:inherit;transition:all .15s}
             </tr>
             <tr>
               <td style="color:var(--orange);font-weight:700">招聘主管</td>
-              <td>专员 ≥ 8人</td>
-              <td>全团队人均 ≥ 6分</td>
+              <td>本团队专员 ≥ 8人</td>
+              <td>本团队人均 ≥ 6分</td>
               <td>含主管本人</td>
-              <td>组长＋专员全部业绩</td>
+              <td>仅本团队组长＋专员业绩</td>
             </tr>
           </tbody>
         </table>
@@ -1004,13 +1004,16 @@ function calcResults(){
       }
     }
 
-    // ─ 团队提成（主管） ─
+    // ─ 团队提成（主管）—— 只按主管所在团队的专员+组长计算 ─
     if(member.role==='manager'){
-      // 主管团队人均包含主管本身，业绩算组长+专员部分
-      const mgTeamAll = [...specialists, ...leaders.filter(l=>scoreMap[l.id]>0), member];
+      const myTeamId = member.teamId;
+      const mySpecs   = myTeamId ? specialists.filter(m=>m.teamId===myTeamId) : [];
+      const myLeaders = myTeamId ? leaders.filter(l=>l.teamId===myTeamId && scoreMap[l.id]>0) : [];
+      // 人均：本团队专员 + 有业绩的组长 + 主管本人
+      const mgTeamAll = [...mySpecs, ...myLeaders, member];
       const mgAvg = mgTeamAll.length>0
         ? mgTeamAll.reduce((s,m)=>s+scoreMap[m.id],0)/mgTeamAll.length : 0;
-      const mgPerfMembers = [...specialists, ...leaders.filter(l=>scoreMap[l.id]>0)];
+      const mgPerfMembers = [...mySpecs, ...myLeaders];
       if(mgAvg>=6 && mgPerfMembers.length>=8){
         const mgTier = mgAvg>=8?'C':'B';
         mgPerfMembers.forEach(m2=>{
@@ -1089,18 +1092,20 @@ function computeTeamBonusDetail(member){
     return {role:'leader', eligible, checks, tier, buckets:Object.values(buckets), total, rates:LD_RATES[tier], counted:validSpecs.length, countedLabel:'本组专员'};
   }
 
-  // 主管：全团队专员 + 有业绩的组长（主管提成计算范围）
-  const specialists = members.filter(m=>m.role==='specialist');
-  const leaders     = members.filter(m=>m.role==='leader');
+  // 主管：只按主管所在团队的专员 + 有业绩的组长计算（避免跨团队汇总）
+  const myTeamId    = member.teamId;
+  const myTeamName  = (teams.find(t=>t.id===myTeamId)||{}).name || '（未分配团队）';
+  const specialists = myTeamId ? members.filter(m=>m.role==='specialist' && m.teamId===myTeamId) : [];
+  const leaders     = myTeamId ? members.filter(m=>m.role==='leader'     && m.teamId===myTeamId) : [];
   const mgTeamAll   = [...specialists, ...leaders.filter(l=>scoreMap[l.id]>0), member];
   const mgAvg       = mgTeamAll.length>0 ? mgTeamAll.reduce((s,m)=>s+scoreMap[m.id],0)/mgTeamAll.length : 0;
   const mgPerfMembers = [...specialists, ...leaders.filter(l=>scoreMap[l.id]>0)];
   const checks = [
-    {label:'全团队业务人员', value:`${mgPerfMembers.length} 人`, need:'≥8', ok:mgPerfMembers.length>=8},
-    {label:'全团队人均分（含主管）', value:`${mgAvg.toFixed(2)} 分`, need:'≥6', ok:mgAvg>=6},
+    {label:`本团队「${myTeamName}」业务人员`, value:`${mgPerfMembers.length} 人`, need:'≥8', ok:mgPerfMembers.length>=8},
+    {label:'本团队人均分（含主管）', value:`${mgAvg.toFixed(2)} 分`, need:'≥6', ok:mgAvg>=6},
   ];
   const eligible = mgAvg>=6 && mgPerfMembers.length>=8;
-  if(!eligible) return {role:'manager', eligible, checks, tier:null, buckets:[], total:0, rates:null, counted:mgPerfMembers.length, countedLabel:'全团队业务人员'};
+  if(!eligible) return {role:'manager', eligible, checks, tier:null, buckets:[], total:0, rates:null, counted:mgPerfMembers.length, countedLabel:`团队「${myTeamName}」业务人员`};
   const tier = mgAvg>=8?'C':'B';
   const buckets = newBuckets();
   mgPerfMembers.forEach(m2=>{
@@ -1116,7 +1121,7 @@ function computeTeamBonusDetail(member){
     b.amount = b.score * b.rate;
   });
   const total = Object.values(buckets).reduce((s,b)=>s+b.amount,0);
-  return {role:'manager', eligible, checks, tier, buckets:Object.values(buckets), total, rates:MG_RATES[tier], counted:mgPerfMembers.length, countedLabel:'全团队业务人员'};
+  return {role:'manager', eligible, checks, tier, buckets:Object.values(buckets), total, rates:MG_RATES[tier], counted:mgPerfMembers.length, countedLabel:`团队「${myTeamName}」业务人员`};
 }
 
 // ── 渲染 ─────────────────────────────────────────────────────────
